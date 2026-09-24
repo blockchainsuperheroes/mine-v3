@@ -497,7 +497,8 @@ if(window.ethereum&&window.ethereum.on){window.ethereum.on("accountsChanged",(a)
 
 /* ---------- vault ---------- */
 async function loadVault(addr){addr=addr.trim();if(!/^0x[a-fA-F0-9]{40}$/.test(addr)){toast("Enter a valid address");return}
-  state.vaultAddr=addr;$("vaultGrid").innerHTML='<div class="empty sk">loading vault</div>';
+  state.vaultAddr=addr;$("vaultGrid").innerHTML=Array.from({length:12},()=>'<div class="nft" aria-hidden="true"><div class="ph sk" style="height:auto">&nbsp;</div><div class="body"><div class="nm sk" style="width:70%">&nbsp;</div><div class="col sk" style="width:45%;margin-top:4px">&nbsp;</div></div></div>').join("");
+  ["vsCount","vsHash","vsShare"].forEach(id=>{$(id).textContent="…"});
   try{const v=await get("/tokens/"+addr+"?include_linked=true",45000);state.vault=v;state.sel.clear();
     const agg={};v.nfts.forEach(n=>{const a=agg[n.collection]||(agg[n.collection]={n:0,hr:0});a.n++;a.hr+=n.hashrate||0});
     const cols=Object.keys(agg).sort((a,b)=>agg[b].hr-agg[a].hr||a.localeCompare(b));
