@@ -571,8 +571,10 @@ document.querySelectorAll(".tabbar").forEach(t=>t.insertAdjacentHTML("beforeend"
 /* ---------- boot ---------- */
 async function boot(){if(!store.get("v3.intro")&&(location.hash||"#mine")==="#mine")showIntro(true);route();loadRound();loadStats();loadMega();loadDiff();loadFeed();loadColStats();
   const w=store.get("v3.wallet");if(w&&/^0x[a-fA-F0-9]{40}$/.test(w))setWallet(w);
-  setInterval(tick,1000);setInterval(loadRound,20000);setInterval(()=>{loadFeed();loadStats();loadDiff()},60000);setInterval(loadMega,120000);
-  setInterval(()=>{if(state.wallet)loadMyStatus(state.wallet)},60000)}
+  const vis=()=>!document.hidden;
+  setInterval(tick,1000);setInterval(()=>{if(vis())loadRound()},20000);setInterval(()=>{if(vis()){loadFeed();loadStats();loadDiff()}},60000);setInterval(()=>{if(vis())loadMega()},120000);
+  setInterval(()=>{if(vis()&&state.wallet)loadMyStatus(state.wallet)},60000);
+  document.addEventListener("visibilitychange",()=>{if(vis()){loadRound();loadFeed();loadStats();if(state.wallet)loadMyStatus(state.wallet)}})}
 boot();
 })();
 </script>
