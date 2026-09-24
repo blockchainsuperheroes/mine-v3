@@ -47,6 +47,16 @@ button{font:inherit;color:inherit}
 .tk .v.ore{color:var(--ore)}.tk .v.sig{color:var(--signal)}
 .tk.live .k::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--good);margin-right:6px;animation:pulse 1.6s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+.train{grid-column:1/-1;overflow:hidden;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0b0f14,#0d1218);padding:6px 0;display:grid;gap:6px}
+.train:empty{display:none}
+.lane{display:flex;gap:6px;width:max-content;animation:train 70s linear infinite}
+.lane.rev{animation-direction:reverse;animation-duration:90s}
+.train:hover .lane{animation-play-state:paused}
+.lane img{width:34px;height:34px;border-radius:8px;object-fit:cover;object-position:center top;border:1px solid var(--line2);background:var(--raised);cursor:pointer;transition:transform .15s}
+.lane img:hover{transform:scale(1.35);border-color:var(--ore);z-index:1}
+@keyframes train{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.lane{animation:none}}
+body.embed .train{display:none}
 .rail{border-right:1px solid var(--line);padding:14px 10px;background:var(--surface);position:sticky;top:0;align-self:start;height:auto}
 .rail a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;color:var(--muted);text-decoration:none;font-weight:600;font-size:14px}
 .rail a svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -244,6 +254,8 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
     <div class="tk"><div class="k">Halving</div><div class="v" id="tkHalving">—</div></div>
     <div class="tk"><div class="k">Bonus today</div><div class="v ore" id="tkBonus">—</div></div>
   </div>
+
+  <div class="train" id="train" aria-hidden="true"><div class="lane" id="lane1"></div><div class="lane rev" id="lane2"></div></div>
 
   <nav class="rail" id="rail">
     <div class="sec">Mine</div>
@@ -534,7 +546,7 @@ async function loadFeed(){try{const b=await get("/blocks?limit=8",15000);const e
     const w=b.items[0].winner_wallet||"";const mine=state.wallet&&w.toLowerCase()===state.wallet.toLowerCase();
     if(mine){const nfc=(b.items[0].rewards||[]).filter(r=>r.symbol==="NFC").map(r=>fmt(r.amount))[0]||"50";toast("🎉 You won block #"+fmt(top)+" · +"+nfc+" NFC");document.title="You won #"+fmt(top)+" · NFT Mining 3.0";setTimeout(()=>document.title="NFT Mining 3.0",30000);if(state.wallet)loadMyStatus(state.wallet)}
     else toast("Block #"+fmt(top)+" landed · "+short(w)+" won")}
-  theatre(b.items,isNew);
+  theatre(b.items,isNew);if(isNew)loadArtPool();
   b.items.forEach((x,i)=>{const share=x.total_hashrate?100*x.winner_hashrate/x.total_hashrate:0;const me=state.wallet&&x.winner_wallet?.toLowerCase()===state.wallet.toLowerCase();
     const rw=(x.rewards||[]).filter(r=>r.symbol==="NFC").map(r=>fmt(r.amount)+" "+r.symbol)[0]||"—";const extra=(x.rewards||[]).filter(r=>r.symbol!=="NFC").length;
     el.insertAdjacentHTML("beforeend",`<div class="row${me?" me":""}${isNew&&i===0?" fresh":""}"><div class="n">#${fmt(x.block_no)}</div><div><div class="who">${short(x.winner_wallet)}${me?' <span class="pill ore">you</span>':""}</div><div class="meta"><span>HR ${fmt(x.winner_hashrate)} · ${share.toFixed(2)}% of ${fmtHR(x.total_hashrate)}</span><span>${fmt(x.total_miners)} miners</span><span>${ago(x.created_at)}</span></div></div><div class="amt">${rw}<small>${extra?"+"+extra+" sponsor tokens":""}${x.reward_tx_hash?` · <a href="${EXPLORER}/tx/0x${x.reward_tx_hash}" target="_blank" rel="noopener">tx</a>`:""}</small></div></div>`)});
@@ -542,6 +554,15 @@ async function loadFeed(){try{const b=await get("/blocks?limit=8",15000);const e
 async function loadColStats(){try{const c=await get("/collection_stats",15000);const top=(c.collections||[]).slice(0,7);const max=Math.max(...top.map(x=>x.wins||0),1);
   $("colStats").innerHTML=top.map(x=>`<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:13px"><b>${esc(x.name)}</b><span class="feed">${fmt(x.wins)} wins · ${fmt(x.win_rate,2)}%</span></div><div class="bar sig"><i style="width:${100*x.wins/max}%"></i></div></div>`).join("")}catch(e){$("colStats").innerHTML='<div class="empty">—</div>'}}
 const nftImg=(n)=>`https://images.pfpvault.com/${n.chain_id}/${(n.contract_address||"").toLowerCase()}/${n.token_id}.webp`;
+/* ---------- art pool + train ---------- */
+async function loadArtPool(){try{const b=await get("/blocks?limit=40",20000);const seen=new Set();const pool=[];
+  b.items.forEach(x=>(x.winner_nfts||[]).forEach(n=>{const k=(n.contract_address||"")+":"+n.token_id;if(seen.has(k))return;seen.add(k);pool.push({...n,winner:x.winner_wallet,block:x.block_no})}));
+  state.artPool=pool;buildTrain()}catch(e){}}
+function buildTrain(){const pool=state.artPool||[];if(pool.length<8||document.body.classList.contains("embed"))return;
+  const mk=(arr)=>arr.map(n=>`<img src="${nftImg(n)}" alt="" loading="lazy" title="${esc(n.name||"")} · ${esc(n.collection||"")} · block #${fmt(n.block)}" data-w="${esc(n.winner||"")}" onerror="this.remove()">`).join("");
+  const a=pool.slice(0,Math.min(60,pool.length)),b=[...pool].reverse().slice(0,Math.min(60,pool.length));
+  $("lane1").innerHTML=mk(a)+mk(a);$("lane2").innerHTML=mk(b)+mk(b)}
+$("train").addEventListener("click",e=>{const im=e.target.closest("img");if(!im||!im.dataset.w)return;state.blkWinner=im.dataset.w;state.blkPage=1;$("blkWinner").value=im.dataset.w;loaded.blocks=1;location.hash="#blocks";loadBlocks();toast("Blocks won by "+short(im.dataset.w))});
 function theatre(items,isNew){const hop=$("thHopper");const nfts=[];items.forEach(x=>(x.winner_nfts||[]).slice(0,4).forEach(n=>nfts.push(n)));
   if(!hop.dataset.built||isNew){hop.innerHTML="";const pool=nfts.slice(0,24);pool.forEach((n,i)=>{const im=document.createElement("img");im.className="th-tile";im.src=nftImg(n);im.alt="";im.loading="lazy";im.style.left=(6+Math.random()*88)+"%";im.style.setProperty("--d",(7+Math.random()*6).toFixed(1)+"s");im.style.setProperty("--s",(-Math.random()*12).toFixed(1)+"s");im.style.setProperty("--x",((Math.random()-.5)*80).toFixed(0)+"px");im.style.setProperty("--r",((Math.random()-.5)*40).toFixed(0)+"deg");im.onerror=()=>im.remove();hop.appendChild(im)});hop.dataset.built="1"}
   const top=items[0];const first=(top?.winner_nfts||[])[0];
@@ -670,7 +691,7 @@ async function boot(){
   const qs=new URLSearchParams(location.search);const hq=new URLSearchParams((location.hash.split("?")[1]||""));
   const pre=(hq.get("w")||qs.get("w")||"").trim();const embed=hq.get("embed")==="1"||qs.get("embed")==="1";
   if(embed){store.set("v3.intro","1");$("btnLegacy").hidden=true;document.body.classList.add("embed")}
-  if(!store.get("v3.intro")&&(location.hash||"#mine").split("?")[0]==="#mine")showIntro(true);route();
+  if(!store.get("v3.intro")&&(location.hash||"#mine").split("?")[0]==="#mine")showIntro(true);route();loadArtPool();
   if(/^0x[a-fA-F0-9]{40}$/.test(pre)){setWallet(pre);toast("Viewing "+short(pre))}loadRound();loadStats();loadMega();loadDiff();loadFeed();loadColStats();
   const w=store.get("v3.wallet");if(!pre&&w&&/^0x[a-fA-F0-9]{40}$/.test(w))setWallet(w);
   const vis=()=>!document.hidden;
