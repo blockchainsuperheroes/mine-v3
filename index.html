@@ -232,6 +232,12 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
         <div>
           <h2>Your mining</h2>
           <div class="card" id="myStatus"><div class="empty">Connect a wallet to see your round status, hashrate and odds.</div></div>
+          <h2 style="margin-top:18px">Winner's Green Day <span class="pill sig">coming</span></h2>
+          <div class="card" id="gdPreview">
+            <p style="margin:0 0 10px;color:var(--muted);font-size:13.5px">Green Day returns as a reward for winning. When a paid boost wins a block, the winner gets the block's NFC and a Green Day PC payout on Ethereum, settled once a day at 00:00 UTC. One win, two rewards.</p>
+            <div class="kv"><div>Proposed payout per paid win</div><div>0.01 PC</div><div>Blocks per day</div><div>72</div><div>Your expected wins / day</div><div id="gdWins">—</div><div>Your expected Green Day / day</div><div id="gdPc">—</div></div>
+            <p class="hint" style="margin-bottom:0">Estimate uses your current hashrate against the live network. Final amount is set at launch. <a href="/greenday" target="_blank" rel="noopener">Why the old Green Day ended</a>.</p>
+          </div>
           <h2 style="margin-top:18px">Collections winning today</h2>
           <div class="card" id="colStats"><div class="sk">loading</div></div>
         </div>
@@ -428,7 +434,8 @@ function tick(){const r=state.round;if(!r)return;const elapsed=(Date.now()-state
   const C=326.7;$("ringArc").setAttribute("stroke-dashoffset",(C*(left/total)).toFixed(1));
   if(left<=0&&Date.now()-state.roundFetchedAt>5000){loadRound();loadFeed();loadStats()}}
 function updateOdds(){const r=state.round;const my=state.myStatus;if(!r||!my||!my.participating){$("mOdds").textContent=state.wallet?"not in round":"—";$("mOddsS").textContent=state.wallet?"enroll in the v2 app":"connect a wallet";return}
-  const p=100*my.hashrate/Math.max(1,r.participants.total_hashrate);$("mOdds").textContent=p.toFixed(2)+"%";$("mOddsS").textContent="HR "+fmt(my.hashrate)+" of "+fmtHR(r.participants.total_hashrate)+" · ≈ "+(p*72/100).toFixed(2)+" blocks/day"}
+  const p=100*my.hashrate/Math.max(1,r.participants.total_hashrate);$("mOdds").textContent=p.toFixed(2)+"%";$("mOddsS").textContent="HR "+fmt(my.hashrate)+" of "+fmtHR(r.participants.total_hashrate)+" · ≈ "+(p*72/100).toFixed(2)+" blocks/day";
+  const wins=p*72/100;const paid=["boosted","boosted_7d"].includes(my.mode||my.subscription?.mode);$("gdWins").textContent=wins.toFixed(2)+(paid?"":" (free tier, not eligible)");$("gdPc").textContent=paid?(wins*0.01).toFixed(4)+" PC":"0 PC until you boost"}
 async function loadMyStatus(w){try{const s=await get("/mining_status/"+w,20000);state.myStatus=s;const sub=s.subscription;
   $("myStatus").innerHTML=`<div class="kv"><div>Status</div><div>${s.participating?'<span class="pill good">mining</span>':'<span class="pill crit">idle</span>'}</div><div>Mode</div><div>${esc(s.mode||sub?.mode||"—")}</div><div>Hashrate</div><div>${fmt(s.hashrate)}</div><div>NFTs enrolled</div><div>${fmt(s.nfts_selected)}</div><div>Round</div><div>#${fmt(s.round_id)}</div><div>Boost expires</div><div>${sub?.time_remaining_seconds>1e9?"never (passive)":dur(sub?.time_remaining_seconds)}</div></div><div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn primary sm" href="${V2_APP}" target="_blank" rel="noopener">Boost / enroll in v2 ↗</a><a class="btn sm" href="#vault">Open vault</a></div>`;
   updateOdds()}catch(e){$("myStatus").innerHTML='<div class="empty">Could not load status.</div>'}}
