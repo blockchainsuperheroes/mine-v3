@@ -143,6 +143,8 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
 .feed{font:12px var(--mono);color:var(--muted)}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--raised);border:1px solid var(--line2);border-radius:10px;padding:10px 14px;font-size:13px;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:calc(100vw - 32px)}
 .tabbar{display:none}
+.offline{grid-column:1/-1;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:8px 16px;background:var(--crit-soft);color:var(--crit);border-bottom:1px solid var(--line);font-size:13px}
+.offline[hidden]{display:none}
 .intro{position:fixed;inset:0;z-index:60;background:rgba(6,9,12,.78);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px}
 .intro[hidden]{display:none}
 .intro-card{background:var(--surface);border:1px solid var(--line2);border-radius:16px;padding:26px 24px;max-width:640px;width:100%;max-height:calc(100vh - 32px);overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.6)}
@@ -197,6 +199,7 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
     <button class="wallet" type="button" id="btnWallet"><span class="ok" id="wDot" hidden></span><span id="wLabel">Connect wallet</span><span class="addr" id="wAddr"></span></button>
   </header>
 
+  <div class="offline" id="offline" hidden role="status"><span>The mining API is not responding. Numbers on this page may be stale.</span><button class="btn sm" type="button" id="offlineRetry">Retry now</button></div>
   <div class="ticker" id="ticker">
     <div class="tk live"><div class="k">Block</div><div class="v ore" id="tkBlock">—</div></div>
     <div class="tk"><div class="k">Next block</div><div class="v sig" id="tkCountdown">—</div></div>
@@ -448,12 +451,14 @@ function route(){let v=(location.hash||"#mine").slice(1).split("?")[0];if(v==="h
 window.addEventListener("hashchange",route);
 
 /* ---------- live network ---------- */
-async function loadRound(){try{const r=await get("/current_round",12000);state.round=r;state.roundFetchedAt=Date.now();
+function setOffline(on){state.apiFails=on?(state.apiFails||0)+1:0;$("offline").hidden=!(state.apiFails>=2)}
+async function loadRound(){try{const r=await get("/current_round",12000);setOffline(false);state.round=r;state.roundFetchedAt=Date.now();
   $("tkBlock").textContent="#"+fmt(r.block_no_next);$("ringBlock").textContent="#"+fmt(r.block_no_next);
   $("tkMiners").textContent=fmt(r.participants?.total);$("mMiners").textContent=fmt(r.participants?.total);
   $("tkHash").textContent=fmtHR(r.participants?.total_hashrate);$("mHash").textContent=fmt(r.participants?.total_hashrate)+" total hashrate";
   const b=r.daily_bonus;if(b){$("tkBonus").textContent=b.collection_name+" ×"+b.multiplier;$("mBonus").textContent="×"+b.multiplier;$("mBonusS").textContent=b.collection_name}
-  updateOdds();}catch(e){$("tkCountdown").textContent="offline"}}
+  updateOdds();}catch(e){setOffline(true);$("tkCountdown").textContent="offline"}}
+$("offlineRetry").addEventListener("click",()=>{state.apiFails=1;loadRound();loadStats();loadFeed();toast("Retrying…")});
 async function loadStats(){try{const s=await get("/stats",12000);state.stats=s;$("tkReward").textContent=fmt(s.current_nfc_reward)+" NFC";$("mReward").textContent=fmt(s.current_nfc_reward)+" NFC";$("mAvg").textContent=mmss(s.avg_block_time);
   const left=HALVING-(s.current_block%HALVING);$("tkHalving").textContent=fmt(left)+" blocks";$("hvBlock").textContent="#"+fmt(s.current_block);$("hvLeft").textContent=fmt(left);$("hvEta").textContent="≈ "+dur(left*BLOCK_SEC);
   const minted=Math.min(CAP,s.current_block*REWARD);$("hvMinted").textContent=fmtHR(minted)+" NFC";}catch(e){}}
