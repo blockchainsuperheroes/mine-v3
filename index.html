@@ -498,7 +498,9 @@ if(window.ethereum&&window.ethereum.on){window.ethereum.on("accountsChanged",(a)
 async function loadVault(addr){addr=addr.trim();if(!/^0x[a-fA-F0-9]{40}$/.test(addr)){toast("Enter a valid address");return}
   state.vaultAddr=addr;$("vaultGrid").innerHTML='<div class="empty sk">loading vault</div>';
   try{const v=await get("/tokens/"+addr+"?include_linked=true",45000);state.vault=v;state.sel.clear();
-    const cols=[...new Set(v.nfts.map(n=>n.collection))].sort();$("vaultCol").innerHTML='<option value="">All collections</option>'+cols.map(c=>`<option>${esc(c)}</option>`).join("");
+    const agg={};v.nfts.forEach(n=>{const a=agg[n.collection]||(agg[n.collection]={n:0,hr:0});a.n++;a.hr+=n.hashrate||0});
+    const cols=Object.keys(agg).sort((a,b)=>agg[b].hr-agg[a].hr||a.localeCompare(b));
+    $("vaultCol").innerHTML=`<option value="">All collections (${v.nfts.length} · ${fmt(v.nfts.reduce((s,n)=>s+(n.hashrate||0),0))} HR)</option>`+cols.map(c=>`<option value="${esc(c)}">${esc(c)} (${agg[c].n} · ${fmt(agg[c].hr)} HR)</option>`).join("");
     renderVault()}catch(e){$("vaultGrid").innerHTML='<div class="empty">Could not load this wallet. The NFT index may be slow; try again.</div>'}}
 function vaultFiltered(){const v=state.vault;if(!v)return[];const ch=$("vaultChain").value,col=$("vaultCol").value,q=$("vaultSearch").value.toLowerCase(),so=$("vaultSort").value;
   let a=v.nfts.filter(n=>(!ch||String(n.chain_id)===ch)&&(!col||n.collection===col)&&(!q||(n.name+" "+n.collection).toLowerCase().includes(q)));
