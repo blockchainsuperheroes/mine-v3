@@ -468,7 +468,10 @@ async function loadMega(){try{const m=await get("/mega_pool",12000);state.mega=m
 async function loadDiff(){try{const d=await get("/difficulty?limit=1",12000);$("mDiff").textContent=fmt(d.current_difficulty,1);$("mDiffS").textContent="24h avg "+fmt(d.avg_difficulty_24h,1)}catch(e){}}
 async function loadFeed(){try{const b=await get("/blocks?limit=8",15000);const el=$("blockFeed");el.innerHTML="";
   const top=b.items[0]?.block_no;const isNew=state.lastBlockNo&&top&&top>state.lastBlockNo;state.lastBlockNo=top||state.lastBlockNo;
-  if(isNew){const ring=document.querySelector(".ring");ring.classList.remove("landed");void ring.offsetWidth;ring.classList.add("landed");toast("Block #"+fmt(top)+" landed · "+short(b.items[0].winner_wallet)+" won")}
+  if(isNew){const ring=document.querySelector(".ring");ring.classList.remove("landed");void ring.offsetWidth;ring.classList.add("landed");
+    const w=b.items[0].winner_wallet||"";const mine=state.wallet&&w.toLowerCase()===state.wallet.toLowerCase();
+    if(mine){const nfc=(b.items[0].rewards||[]).filter(r=>r.symbol==="NFC").map(r=>fmt(r.amount))[0]||"50";toast("🎉 You won block #"+fmt(top)+" · +"+nfc+" NFC");document.title="You won #"+fmt(top)+" · NFT Mining 3.0";setTimeout(()=>document.title="NFT Mining 3.0",30000);if(state.wallet)loadMyStatus(state.wallet)}
+    else toast("Block #"+fmt(top)+" landed · "+short(w)+" won")}
   b.items.forEach((x,i)=>{const share=x.total_hashrate?100*x.winner_hashrate/x.total_hashrate:0;const me=state.wallet&&x.winner_wallet?.toLowerCase()===state.wallet.toLowerCase();
     const rw=(x.rewards||[]).filter(r=>r.symbol==="NFC").map(r=>fmt(r.amount)+" "+r.symbol)[0]||"—";const extra=(x.rewards||[]).filter(r=>r.symbol!=="NFC").length;
     el.insertAdjacentHTML("beforeend",`<div class="row${me?" me":""}${isNew&&i===0?" fresh":""}"><div class="n">#${fmt(x.block_no)}</div><div><div class="who">${short(x.winner_wallet)}${me?' <span class="pill ore">you</span>':""}</div><div class="meta"><span>HR ${fmt(x.winner_hashrate)} · ${share.toFixed(2)}% of ${fmtHR(x.total_hashrate)}</span><span>${fmt(x.total_miners)} miners</span><span>${ago(x.created_at)}</span></div></div><div class="amt">${rw}<small>${extra?"+"+extra+" sponsor tokens":""}${x.reward_tx_hash?` · <a href="${EXPLORER}/tx/0x${x.reward_tx_hash}" target="_blank" rel="noopener">tx</a>`:""}</small></div></div>`)});
