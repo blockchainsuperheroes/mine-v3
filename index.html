@@ -143,6 +143,21 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
 .feed{font:12px var(--mono);color:var(--muted)}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--raised);border:1px solid var(--line2);border-radius:10px;padding:10px 14px;font-size:13px;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:calc(100vw - 32px)}
 .tabbar{display:none}
+.theatre{position:relative;height:240px;border:1px solid var(--line);border-radius:var(--r);background:radial-gradient(600px 200px at 50% 110%,rgba(240,160,75,.16),transparent 70%),var(--surface);overflow:hidden}
+.th-hopper{position:absolute;inset:0 0 60px 0;overflow:hidden}
+.th-tile{position:absolute;top:-64px;width:48px;height:48px;border-radius:10px;object-fit:cover;object-position:center top;border:1px solid var(--line2);background:var(--raised);animation:drop var(--d,9s) linear infinite;animation-delay:var(--s,0s);opacity:.9}
+@keyframes drop{0%{transform:translateY(0) rotate(0)}80%{opacity:.9}100%{transform:translateY(240px) translateX(var(--x,0px)) rotate(var(--r,10deg));opacity:0}}
+.th-funnel{position:absolute;left:50%;bottom:0;width:180px;height:70px;transform:translateX(-50%);border:1px solid var(--line2);border-bottom:0;border-radius:90px 90px 0 0;background:linear-gradient(180deg,rgba(240,160,75,.08),rgba(240,160,75,.22))}
+.th-reveal{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);display:flex;gap:12px;align-items:center;background:var(--raised);border:1px solid var(--ore);border-radius:12px;padding:10px 14px;box-shadow:0 10px 30px rgba(0,0,0,.5);animation:reveal .5s ease-out;max-width:calc(100% - 32px)}
+.th-reveal[hidden]{display:none}
+.th-reveal img{width:56px;height:56px;border-radius:10px;object-fit:cover;object-position:center top;background:var(--surface)}
+.th-k{font:600 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ore)}
+.th-n{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+.th-s{font-size:12px;color:var(--muted)}
+@keyframes reveal{0%{transform:translateX(-50%) translateY(20px);opacity:0}100%{transform:translateX(-50%) translateY(0);opacity:1}}
+.th-caption{position:absolute;left:12px;top:10px;max-width:46ch;font-size:12px;color:var(--muted);line-height:1.4}
+@media (max-width:600px){.th-caption{display:none}.theatre{height:200px}}
+@media (prefers-reduced-motion:reduce){.th-tile{animation:none;top:auto;bottom:70px;opacity:.6}}
 .dock{position:fixed;right:16px;bottom:16px;z-index:45;width:min(360px,calc(100vw - 32px));background:var(--surface);border:1px solid var(--line2);border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.5);overflow:hidden}
 .dock[hidden]{display:none}
 .dock-bar{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line)}
@@ -254,6 +269,18 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
           <div class="stat"><div class="k">Avg block time</div><div class="v" id="mAvg">—</div><div class="s">target 20:00</div></div>
           <div class="stat"><div class="k">Daily bonus</div><div class="v sig" id="mBonus">—</div><div class="s" id="mBonusS">—</div></div>
           <div class="stat"><div class="k">Your odds this block</div><div class="v" id="mOdds">—</div><div class="s" id="mOddsS">connect a wallet</div></div>
+        </div>
+      </div>
+      <div class="section">
+        <h2>Block election <span class="pill" id="thStatus">live</span></h2>
+        <div class="theatre" id="theatre">
+          <div class="th-hopper" id="thHopper"></div>
+          <div class="th-funnel"></div>
+          <div class="th-reveal" id="thReveal" hidden>
+            <img id="thImg" alt="">
+            <div><div class="th-k">Elected</div><div class="th-n" id="thName">—</div><div class="th-s" id="thSub">—</div></div>
+          </div>
+          <div class="th-caption">Every enrolled NFT drops into the hopper. One is elected each block, weighted by hashrate, from a commit-reveal seed. Over time your share of blocks equals your share of hashrate.</div>
         </div>
       </div>
       <div class="grid g2 section">
@@ -498,12 +525,18 @@ async function loadFeed(){try{const b=await get("/blocks?limit=8",15000);const e
     const w=b.items[0].winner_wallet||"";const mine=state.wallet&&w.toLowerCase()===state.wallet.toLowerCase();
     if(mine){const nfc=(b.items[0].rewards||[]).filter(r=>r.symbol==="NFC").map(r=>fmt(r.amount))[0]||"50";toast("🎉 You won block #"+fmt(top)+" · +"+nfc+" NFC");document.title="You won #"+fmt(top)+" · NFT Mining 3.0";setTimeout(()=>document.title="NFT Mining 3.0",30000);if(state.wallet)loadMyStatus(state.wallet)}
     else toast("Block #"+fmt(top)+" landed · "+short(w)+" won")}
+  theatre(b.items,isNew);
   b.items.forEach((x,i)=>{const share=x.total_hashrate?100*x.winner_hashrate/x.total_hashrate:0;const me=state.wallet&&x.winner_wallet?.toLowerCase()===state.wallet.toLowerCase();
     const rw=(x.rewards||[]).filter(r=>r.symbol==="NFC").map(r=>fmt(r.amount)+" "+r.symbol)[0]||"—";const extra=(x.rewards||[]).filter(r=>r.symbol!=="NFC").length;
     el.insertAdjacentHTML("beforeend",`<div class="row${me?" me":""}${isNew&&i===0?" fresh":""}"><div class="n">#${fmt(x.block_no)}</div><div><div class="who">${short(x.winner_wallet)}${me?' <span class="pill ore">you</span>':""}</div><div class="meta"><span>HR ${fmt(x.winner_hashrate)} · ${share.toFixed(2)}% of ${fmtHR(x.total_hashrate)}</span><span>${fmt(x.total_miners)} miners</span><span>${ago(x.created_at)}</span></div></div><div class="amt">${rw}<small>${extra?"+"+extra+" sponsor tokens":""}${x.reward_tx_hash?` · <a href="${EXPLORER}/tx/0x${x.reward_tx_hash}" target="_blank" rel="noopener">tx</a>`:""}</small></div></div>`)});
   }catch(e){$("blockFeed").innerHTML='<div class="empty">Block feed unavailable.</div>'}}
 async function loadColStats(){try{const c=await get("/collection_stats",15000);const top=(c.collections||[]).slice(0,7);const max=Math.max(...top.map(x=>x.wins||0),1);
   $("colStats").innerHTML=top.map(x=>`<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:13px"><b>${esc(x.name)}</b><span class="feed">${fmt(x.wins)} wins · ${fmt(x.win_rate,2)}%</span></div><div class="bar sig"><i style="width:${100*x.wins/max}%"></i></div></div>`).join("")}catch(e){$("colStats").innerHTML='<div class="empty">—</div>'}}
+const nftImg=(n)=>`https://images.pfpvault.com/${n.chain_id}/${(n.contract_address||"").toLowerCase()}/${n.token_id}.webp`;
+function theatre(items,isNew){const hop=$("thHopper");const nfts=[];items.forEach(x=>(x.winner_nfts||[]).slice(0,4).forEach(n=>nfts.push(n)));
+  if(!hop.dataset.built||isNew){hop.innerHTML="";const pool=nfts.slice(0,24);pool.forEach((n,i)=>{const im=document.createElement("img");im.className="th-tile";im.src=nftImg(n);im.alt="";im.loading="lazy";im.style.left=(6+Math.random()*88)+"%";im.style.setProperty("--d",(7+Math.random()*6).toFixed(1)+"s");im.style.setProperty("--s",(-Math.random()*12).toFixed(1)+"s");im.style.setProperty("--x",((Math.random()-.5)*80).toFixed(0)+"px");im.style.setProperty("--r",((Math.random()-.5)*40).toFixed(0)+"deg");im.onerror=()=>im.remove();hop.appendChild(im)});hop.dataset.built="1"}
+  const top=items[0];const first=(top?.winner_nfts||[])[0];
+  if(top&&first){$("thImg").src=nftImg(first);$("thName").textContent=first.name||("#"+first.token_id);$("thSub").textContent=`${first.collection||""} · block #${fmt(top.block_no)} · ${(100*top.winner_hashrate/Math.max(1,top.total_hashrate)).toFixed(2)}% of hashrate`;$("thReveal").hidden=false;$("thStatus").textContent=isNew?"elected just now":"last election";$("thStatus").className="pill "+(isNew?"ore":"")}}
 function tick(){const r=state.round;if(!r)return;const elapsed=(Date.now()-state.roundFetchedAt)/1000;const left=Math.max(0,r.countdown_seconds-elapsed);const total=r.round_duration_seconds||BLOCK_SEC;
   $("ringTime").textContent=mmss(left);$("tkCountdown").textContent=mmss(left);
   const C=326.7;const arc=$("ringArc");arc.setAttribute("stroke-dashoffset",(C*(left/total)).toFixed(1));
