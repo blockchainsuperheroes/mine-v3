@@ -120,7 +120,7 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
 .nft{background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;cursor:pointer;position:relative;transition:transform .15s,border-color .15s}
 .nft:hover{transform:translateY(-2px);border-color:var(--line2)}
 .nft.sel{border-color:var(--ore);box-shadow:0 0 0 1px var(--ore)}
-.nft .img{aspect-ratio:1;background:var(--raised);display:block;width:100%;object-fit:cover}
+.nft .img{aspect-ratio:1;background:var(--raised);display:block;width:100%;object-fit:cover;object-position:center top}
 .nft .ph{aspect-ratio:1;background:linear-gradient(135deg,#182130,#0f151d);display:flex;align-items:center;justify-content:center;font:600 12px var(--mono);color:var(--dim)}
 .nft .body{padding:9px 10px}
 .nft .nm{font-weight:700;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -143,6 +143,15 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
 .feed{font:12px var(--mono);color:var(--muted)}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--raised);border:1px solid var(--line2);border-radius:10px;padding:10px 14px;font-size:13px;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:calc(100vw - 32px)}
 .tabbar{display:none}
+.dock{position:fixed;right:16px;bottom:16px;z-index:45;width:min(360px,calc(100vw - 32px));background:var(--surface);border:1px solid var(--line2);border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.5);overflow:hidden}
+.dock[hidden]{display:none}
+.dock-bar{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line)}
+.dock-bar select{font-size:12px;padding:5px 8px;max-width:210px}
+.dock-dot{width:8px;height:8px;border-radius:50%;background:var(--dim);flex:none}
+.dock.playing .dock-dot{background:var(--good);animation:pulse 1.6s infinite}
+.dock iframe{display:block;width:100%;height:96px;border:0;background:#0b0f14}
+.dock.big iframe{height:min(480px,60vh)}
+@media (max-width:959px){.dock{bottom:calc(72px + env(safe-area-inset-bottom,0px))}}
 .offline{grid-column:1/-1;display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:8px 16px;background:var(--crit-soft);color:var(--crit);border-bottom:1px solid var(--line);font-size:13px}
 .offline[hidden]{display:none}
 .intro{position:fixed;inset:0;z-index:60;background:rgba(6,9,12,.78);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px}
@@ -195,6 +204,7 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
       <button class="soon" type="button" data-net="eth"><span class="dot"></span>Ethereum · soon</button>
     </div>
     <div class="spacer"></div>
+    <button class="btn ghost sm" type="button" id="btnMusic" title="Background music" aria-pressed="false">♪ Music</button>
     <button class="btn ghost sm" type="button" id="btnLegacy" title="Open the current v2 app">v2 app ↗</button>
     <button class="wallet" type="button" id="btnWallet"><span class="ok" id="wDot" hidden></span><span id="wLabel">Connect wallet</span><span class="addr" id="wAddr"></span></button>
   </header>
@@ -393,6 +403,22 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
 </div>
 <div class="toast" id="toast" hidden></div>
 
+<div class="dock" id="dock" hidden aria-label="Background music">
+  <div class="dock-bar">
+    <span class="dock-dot" id="dockDot"></span>
+    <select id="dockSrc" aria-label="Music source">
+      <option value="cafe">Ether Family · LoFi café</option>
+      <option value="ef" disabled>EtherFantasy · BGM (soon)</option>
+      <option value="gun" disabled>Gunnies · BGM (soon)</option>
+    </select>
+    <span class="spacer"></span>
+    <button class="btn sm ghost" type="button" id="dockExpand" title="Expand">⤢</button>
+    <button class="btn sm ghost" type="button" id="dockClose" title="Stop and close">✕</button>
+  </div>
+  <iframe id="dockFrame" title="Ether Family LoFi café" allow="autoplay" referrerpolicy="no-referrer"></iframe>
+  <audio id="dockAudio" hidden></audio>
+</div>
+
 <div class="intro" id="intro" hidden role="dialog" aria-modal="true" aria-labelledby="introTitle">
   <div class="intro-card">
     <div class="eyebrow">NFT Mining · how it works</div>
@@ -564,6 +590,18 @@ function drawHalving(){const svg=$("hvChart");const cur=state.stats?.current_blo
   const gy=[50,25,12.5].map(v=>`<text x="${L-6}" y="${y(v)+3}" text-anchor="end">${v}</text><line x1="${L}" y1="${y(v)}" x2="${W-R}" y2="${y(v)}" stroke="#24303f"/>`).join("");
   const mark=cur?`<line x1="${x(cur)}" y1="${T}" x2="${x(cur)}" y2="${H-B}" stroke="#5ad1c9" stroke-width="2"/><text x="${x(cur)+5}" y="${T+10}" fill="#5ad1c9">now #${fmt(cur)}</text>`:"";
   svg.innerHTML=`${gy}${gx}<path d="${s}" fill="none" stroke="#5c6a7a" stroke-width="1.5" stroke-dasharray="4 3"/><path d="${d}" fill="none" stroke="#f0a04b" stroke-width="3"/>${mark}<text x="${W-R}" y="${H-B+28}" text-anchor="end">blocks · orange = NFC per block · grey = cumulative supply to 21M</text>`}
+
+/* ---------- music dock ---------- */
+const MUSIC={cafe:{type:"iframe",url:"https://d31l8rwq7d85js.cloudfront.net/cafe/index.html?mini=1&autoplay=1"},ef:{type:"audio",url:""},gun:{type:"audio",url:""}};
+function musicStart(src){const m=MUSIC[src];if(!m||!m.url)return;const d=$("dock");d.hidden=false;d.classList.add("playing");$("btnMusic").setAttribute("aria-pressed","true");$("btnMusic").textContent="♪ On";
+  if(m.type==="iframe"){$("dockAudio").pause();$("dockFrame").hidden=false;if($("dockFrame").src!==m.url)$("dockFrame").src=m.url}else{$("dockFrame").src="about:blank";$("dockFrame").hidden=true;const a=$("dockAudio");a.src=m.url;a.loop=true;a.volume=.6;a.play().catch(()=>{})}
+  store.set("v3.music",src)}
+function musicStop(){const d=$("dock");d.hidden=true;d.classList.remove("playing","big");$("dockFrame").src="about:blank";$("dockAudio").pause();$("btnMusic").setAttribute("aria-pressed","false");$("btnMusic").textContent="♪ Music";store.set("v3.music","")}
+$("btnMusic").addEventListener("click",()=>{if($("dock").hidden)musicStart($("dockSrc").value||"cafe");else musicStop()});
+$("dockSrc").addEventListener("change",()=>musicStart($("dockSrc").value));
+$("dockClose").addEventListener("click",musicStop);
+$("dockExpand").addEventListener("click",()=>$("dock").classList.toggle("big"));
+(function(){const s=store.get("v3.music");if(s&&MUSIC[s]&&MUSIC[s].url&&!location.search.includes("embed=1")){$("dockSrc").value=s;musicStart(s)}})();
 
 /* ---------- intro ---------- */
 $("introGo").addEventListener("click",()=>showIntro(false));
