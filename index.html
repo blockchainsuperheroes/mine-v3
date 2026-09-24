@@ -363,7 +363,7 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
     <section class="view" id="view-leaderboard">
       <h1>Leaderboard</h1>
       <p class="sub">All-time wins. Hashrate is cumulative across every round entered.</p>
-      <div class="toolbar"><span class="spacer"></span><button class="btn sm" type="button" id="lbPrev">‹ Prev</button><span class="pill" id="lbPage">page 1</span><button class="btn sm" type="button" id="lbNext">Next ›</button></div>
+      <div class="toolbar"><input type="text" id="lbFind" placeholder="Find a wallet 0x…" style="min-width:220px;font-family:var(--mono)"><button class="btn sm" type="button" id="lbFindGo">Find</button><button class="btn sm ghost" type="button" id="lbFindMe">Find me</button><span class="pill" id="lbFindState" hidden></span><span class="spacer"></span><button class="btn sm" type="button" id="lbPrev">‹ Prev</button><span class="pill" id="lbPage">page 1</span><button class="btn sm" type="button" id="lbNext">Next ›</button></div>
       <div class="tablewrap"><table id="lbTable"><thead><tr><th class="num">#</th><th>Wallet</th><th class="num">Wins</th><th>Share of wins</th><th class="num">Cumulative HR</th></tr></thead><tbody></tbody></table></div>
     </section>
 
@@ -619,6 +619,14 @@ async function loadLeaderboard(){const tb=$("lbTable").querySelector("tbody");tb
   try{const l=await get(`/leaderboard?limit=25&page=${state.lbPage}`,20000);const tot=l.items.reduce((s,x)=>s+x.total_wins,0);const max=Math.max(...l.items.map(x=>x.total_wins),1);
     tb.innerHTML=l.items.map((x,i)=>{const me=state.wallet&&x.wallet_address.toLowerCase()===state.wallet.toLowerCase();return`<tr${me?' class="me"':""}><td class="num">${(state.lbPage-1)*25+i+1}</td><td style="font-family:var(--mono)">${esc(x.username||short(x.wallet_address))}${me?' <span class="pill ore">you</span>':""}</td><td class="num"><b>${fmt(x.total_wins)}</b></td><td><div class="bar" style="width:140px"><i style="width:${100*x.total_wins/max}%"></i></div></td><td class="num">${fmtHR(x.total_hashrate)}</td></tr>`}).join("")}catch(e){tb.innerHTML='<tr><td colspan="5" class="empty">Unavailable.</td></tr>'}}
 $("lbPrev").addEventListener("click",()=>{if(state.lbPage>1){state.lbPage--;loadLeaderboard()}});$("lbNext").addEventListener("click",()=>{state.lbPage++;loadLeaderboard()});
+async function lbFind(w){w=(w||"").trim().toLowerCase();const st=$("lbFindState");if(!/^0x[a-f0-9]{40}$/.test(w)){toast("Enter a full wallet address");return}
+  st.hidden=false;st.textContent="searching…";
+  try{for(let p=1;p<=12;p++){const l=await get(`/leaderboard?limit=25&page=${p}`,20000);const i=l.items.findIndex(x=>x.wallet_address.toLowerCase()===w);
+      if(i>=0){state.lbPage=p;await loadLeaderboard();const rows=$("lbTable").querySelectorAll("tbody tr");const row=rows[i];if(row){row.classList.add("me");row.scrollIntoView({block:"center",behavior:"smooth"})}st.textContent=`rank #${(p-1)*25+i+1} · ${fmt(l.items[i].total_wins)} wins`;return}
+      if(p>=(l.total_pages||1))break}
+    st.textContent="not on the leaderboard yet"}catch(e){st.textContent="search failed"}}
+$("lbFindGo").addEventListener("click",()=>lbFind($("lbFind").value));$("lbFind").addEventListener("keydown",e=>{if(e.key==="Enter")lbFind($("lbFind").value)});
+$("lbFindMe").addEventListener("click",()=>{if(!state.wallet){toast("Connect a wallet first");return}$("lbFind").value=state.wallet;lbFind(state.wallet)});
 
 /* ---------- pools ---------- */
 async function loadPools(){loadMega();
