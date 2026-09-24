@@ -143,6 +143,19 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
 .feed{font:12px var(--mono);color:var(--muted)}
 .toast{position:fixed;left:50%;bottom:calc(84px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--raised);border:1px solid var(--line2);border-radius:10px;padding:10px 14px;font-size:13px;z-index:50;box-shadow:0 10px 30px rgba(0,0,0,.4);max-width:calc(100vw - 32px)}
 .tabbar{display:none}
+.intro{position:fixed;inset:0;z-index:60;background:rgba(6,9,12,.78);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px}
+.intro[hidden]{display:none}
+.intro-card{background:var(--surface);border:1px solid var(--line2);border-radius:16px;padding:26px 24px;max-width:640px;width:100%;max-height:calc(100vh - 32px);overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.intro .eyebrow{font:600 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.intro-h{font-family:var(--display);font-weight:700;font-size:clamp(24px,4vw,32px);margin:8px 0 8px;line-height:1.1;text-wrap:balance}
+.intro-lede{color:var(--muted);margin:0 0 18px;max-width:60ch}
+.intro-steps{display:grid;gap:10px;margin-bottom:20px}
+.istep{display:grid;grid-template-columns:32px 1fr;gap:12px;align-items:start;font-size:14px;color:var(--muted);line-height:1.5}
+.istep b{color:var(--ink)}
+.istep .in{width:32px;height:32px;border-radius:9px;background:var(--ore-soft);color:var(--ore);font:700 14px var(--display);display:flex;align-items:center;justify-content:center}
+.intro-actions{display:flex;gap:10px;flex-wrap:wrap}
+.howlink{margin-top:auto;padding:14px 12px 0}
+.howlink a{font-size:13px}
 .chart{width:100%;height:auto;display:block}
 .chart text{font:600 10px var(--mono);fill:var(--muted)}
 .sk{background:linear-gradient(90deg,var(--raised),#1f2a3a,var(--raised));background-size:200% 100%;animation:sk 1.2s infinite;border-radius:6px;color:transparent}
@@ -207,6 +220,8 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
     <a href="#halving" data-view="halving"><svg viewBox="0 0 24 24"><path d="M3 18l6-8 4 5 8-11"/></svg>Halving</a>
     <div class="sec">3.0</div>
     <a href="#ethereum" data-view="ethereum"><svg viewBox="0 0 24 24"><path d="M12 2l7 10-7 4-7-4zM5 14l7 8 7-8-7 4z"/></svg>Ethereum launch</a>
+    <div class="sec">Help</div>
+    <a href="#how" id="howLink"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg>How it works</a>
   </nav>
 
   <main>
@@ -375,6 +390,25 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
 </div>
 <div class="toast" id="toast" hidden></div>
 
+<div class="intro" id="intro" hidden role="dialog" aria-modal="true" aria-labelledby="introTitle">
+  <div class="intro-card">
+    <div class="eyebrow">NFT Mining · how it works</div>
+    <h2 id="introTitle" class="intro-h">Your NFTs are the miners.</h2>
+    <p class="intro-lede">Proof of stake for NFT holders. Hold blue-chip NFTs, enrol them, and every 20 minutes one wallet wins the block. Nothing is deposited, locked or sold.</p>
+    <div class="intro-steps">
+      <div class="istep"><div class="in">1</div><div><b>Hold, don't stake.</b> Your NFTs stay in your wallet. Enrolling is a signature. Cold wallets can mine through a delegated hot wallet.</div></div>
+      <div class="istep"><div class="in">2</div><div><b>One block every 20 minutes.</b> A winner is drawn, weighted by hashrate. The winner takes the whole 50 NFC reward, like a Bitcoin block. Halving every 210,000 blocks, 21 million cap.</div></div>
+      <div class="istep"><div class="in">3</div><div><b>Hashrate comes from value, not hardware.</b> In Bitcoin you buy machines and the biggest buyer wins. Here hashrate is the cube root of what your NFT is worth, so an NFT worth 1,000× more mines only 10× harder. Nobody can buy up the network.</div></div>
+      <div class="istep"><div class="in">4</div><div><b>Creators' rights weigh more.</b> Collections that give holders the rights to their own art mine at full power. Personal-use-only collections still mine, just less.</div></div>
+    </div>
+    <div class="intro-actions">
+      <button class="btn primary" type="button" id="introGo">Show me the network</button>
+      <button class="btn" type="button" id="introVault">Load my vault</button>
+      <button class="btn ghost" type="button" id="introMore">Read the Ethereum plan</button>
+    </div>
+  </div>
+</div>
+
 <script>
 (function(){
 "use strict";
@@ -399,7 +433,8 @@ const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},se
 /* ---------- routing ---------- */
 const VIEWS=["mine","vault","rewards","blocks","leaderboard","pools","halving","ethereum"];
 const loaded={};
-function route(){let v=(location.hash||"#mine").slice(1).split("?")[0];if(!VIEWS.includes(v))v="mine";
+function showIntro(on){$("intro").hidden=!on;if(on){$("introGo").focus()}else{store.set("v3.intro","1")}}
+function route(){let v=(location.hash||"#mine").slice(1).split("?")[0];if(v==="how"){showIntro(true);history.replaceState(null,"","#mine");v="mine"}if(!VIEWS.includes(v))v="mine";
   VIEWS.forEach(x=>$("view-"+x).classList.toggle("on",x===v));
   document.querySelectorAll("[data-view]").forEach(a=>a.classList.toggle("on",a.dataset.view===v));
   window.scrollTo({top:0});
@@ -516,8 +551,16 @@ function drawHalving(){const svg=$("hvChart");const cur=state.stats?.current_blo
   const mark=cur?`<line x1="${x(cur)}" y1="${T}" x2="${x(cur)}" y2="${H-B}" stroke="#5ad1c9" stroke-width="2"/><text x="${x(cur)+5}" y="${T+10}" fill="#5ad1c9">now #${fmt(cur)}</text>`:"";
   svg.innerHTML=`${gy}${gx}<path d="${s}" fill="none" stroke="#5c6a7a" stroke-width="1.5" stroke-dasharray="4 3"/><path d="${d}" fill="none" stroke="#f0a04b" stroke-width="3"/>${mark}<text x="${W-R}" y="${H-B+28}" text-anchor="end">blocks · orange = NFC per block · grey = cumulative supply to 21M</text>`}
 
+/* ---------- intro ---------- */
+$("introGo").addEventListener("click",()=>showIntro(false));
+$("introVault").addEventListener("click",()=>{showIntro(false);location.hash="#vault";if(!state.wallet)connect()});
+$("introMore").addEventListener("click",()=>{showIntro(false);location.hash="#ethereum"});
+$("intro").addEventListener("click",e=>{if(e.target===$("intro"))showIntro(false)});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("intro").hidden)showIntro(false)});
+document.querySelectorAll(".tabbar").forEach(t=>t.insertAdjacentHTML("beforeend",'<a href="#how"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg>How</a>'));
+
 /* ---------- boot ---------- */
-async function boot(){route();loadRound();loadStats();loadMega();loadDiff();loadFeed();loadColStats();
+async function boot(){if(!store.get("v3.intro")&&(location.hash||"#mine")==="#mine")showIntro(true);route();loadRound();loadStats();loadMega();loadDiff();loadFeed();loadColStats();
   const w=store.get("v3.wallet");if(w&&/^0x[a-fA-F0-9]{40}$/.test(w))setWallet(w);
   setInterval(tick,1000);setInterval(loadRound,20000);setInterval(()=>{loadFeed();loadStats();loadDiff()},60000);setInterval(loadMega,120000);
   setInterval(()=>{if(state.wallet)loadMyStatus(state.wallet)},60000)}
