@@ -472,7 +472,8 @@ async function loadColStats(){try{const c=await get("/collection_stats",15000);c
   $("colStats").innerHTML=top.map(x=>`<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:13px"><b>${esc(x.name)}</b><span class="feed">${fmt(x.wins)} wins · ${fmt(x.win_rate,2)}%</span></div><div class="bar sig"><i style="width:${100*x.wins/max}%"></i></div></div>`).join("")}catch(e){$("colStats").innerHTML='<div class="empty">—</div>'}}
 function tick(){const r=state.round;if(!r)return;const elapsed=(Date.now()-state.roundFetchedAt)/1000;const left=Math.max(0,r.countdown_seconds-elapsed);const total=r.round_duration_seconds||BLOCK_SEC;
   $("ringTime").textContent=mmss(left);$("tkCountdown").textContent=mmss(left);
-  const C=326.7;$("ringArc").setAttribute("stroke-dashoffset",(C*(left/total)).toFixed(1));
+  const C=326.7;const arc=$("ringArc");arc.setAttribute("stroke-dashoffset",(C*(left/total)).toFixed(1));
+  const hot=left<=60;if(arc.dataset.hot!==String(hot)){arc.dataset.hot=String(hot);arc.setAttribute("stroke",hot?"#5ad1c9":"#f0a04b");$("ringTime").style.color=hot?"var(--signal)":"";$("tkCountdown").classList.toggle("ore",hot)}
   if(left<=0&&Date.now()-state.roundFetchedAt>5000){loadRound();loadFeed();loadStats()}}
 function updateOdds(){const r=state.round;const my=state.myStatus;if(!r||!my||!my.participating){$("mOdds").textContent=state.wallet?"not in round":"—";$("mOddsS").textContent=state.wallet?"enroll in the v2 app":"connect a wallet";return}
   const p=100*my.hashrate/Math.max(1,r.participants.total_hashrate);$("mOdds").textContent=p.toFixed(2)+"%";$("mOddsS").textContent="HR "+fmt(my.hashrate)+" of "+fmtHR(r.participants.total_hashrate)+" · ≈ "+(p*72/100).toFixed(2)+" blocks/day";
