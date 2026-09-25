@@ -107,6 +107,16 @@ h3{font:700 13px var(--body);margin:0 0 8px;color:var(--muted);text-transform:up
 .cube-wrap.idle .cube{animation-duration:40s}
 .cube-wrap.idle .cube .f{filter:grayscale(.85) brightness(.7)}
 .hero.mining{box-shadow:0 0 0 1px rgba(88,196,122,.35),0 0 44px rgba(88,196,122,.08)}
+.mip{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer}
+.mip:hover{border-color:var(--line2)}
+.mip .no{font:700 13px var(--mono);color:var(--ore)}
+.mip .t{font-weight:700;font-size:14px}
+.mip .s{color:var(--muted);font-size:13px;margin-top:4px;display:none}
+.mip.open .s{display:block}
+.mip-flow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;color:var(--dim);font-size:12px;margin-bottom:10px}
+.mip-hist{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;font-size:13px}
+.mip-hist div:nth-child(odd){font:600 12px var(--mono);color:var(--ore);white-space:nowrap}
+.mip-hist div:nth-child(even){color:var(--muted)}
 .th-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:14px;align-items:stretch}
 @media (max-width:900px){.th-grid{grid-template-columns:1fr}}
 .th-record .kv{font-size:12.5px}
@@ -336,6 +346,7 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
     <a href="#halving" data-view="halving"><svg viewBox="0 0 24 24"><path d="M3 18l6-8 4 5 8-11"/></svg>Halving</a>
     <div class="sec">3.0</div>
     <a href="#ethereum" data-view="ethereum"><svg viewBox="0 0 24 24"><path d="M12 2l7 10-7 4-7-4zM5 14l7 8 7-8-7 4z"/></svg>Ethereum launch</a>
+    <a href="#mips" data-view="mips"><svg viewBox="0 0 24 24"><path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4M10 12h6M10 16h6"/></svg>Improvement proposals</a>
     <div class="sec">Help</div>
     <a href="#how" id="howLink"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17h.01"/></svg>How it works</a>
   </nav>
@@ -492,6 +503,25 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
       <div class="card"><svg class="chart" id="hvChart" viewBox="0 0 720 260" role="img" aria-label="Emission schedule"></svg></div>
     </section>
 
+    <!-- MIPs -->
+    <section class="view" id="view-mips">
+      <h1>Mining Improvement Proposals</h1>
+      <p class="sub">Every change to the mining rules is proposed, argued and recorded here, like Ethereum's EIPs. Emission itself (50 NFC per block, halving every 210,000 blocks, 21 million cap) is fixed in the token contract and can never be voted on.</p>
+      <div class="grid g2">
+        <div>
+          <h2>Proposals</h2>
+          <div class="list" id="mipList"></div>
+        </div>
+        <div>
+          <h2>How a MIP moves</h2>
+          <div class="card"><div class="mip-flow"><span class="pill">Draft</span>→<span class="pill">Review</span>→<span class="pill">Last Call · 7 days</span>→<span class="pill sig">Accepted</span>→<span class="pill good">Final</span></div>
+            <p class="hint" style="margin-bottom:0">Phase 1: the Mining Council decides, NFC holders signal with a snapshot vote weighted by NFC held at least 30 days. Phase 2: binding on-chain votes, behind a timelock, for the parameters the contracts expose.</p></div>
+          <h2 style="margin-top:18px">History</h2>
+          <div class="card"><div class="mip-hist" id="mipHist"></div></div>
+        </div>
+      </div>
+    </section>
+
     <!-- ETHEREUM 3.0 -->
     <section class="view" id="view-ethereum">
       <h1>NFT Mining on Ethereum</h1>
@@ -604,7 +634,7 @@ async function get(path,ms=25000){const c=new AbortController();const t=setTimeo
 const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
 
 /* ---------- routing ---------- */
-const VIEWS=["mine","vault","rewards","blocks","leaderboard","pools","halving","ethereum"];
+const VIEWS=["mine","vault","rewards","blocks","leaderboard","pools","halving","ethereum","mips"];
 const loaded={};
 function showIntro(on){$("intro").hidden=!on;if(on){$("introGo").focus()}else{store.set("v3.intro","1")}}
 function route(){let v=(location.hash||"#mine").slice(1).split("?")[0];if(v==="how"){showIntro(true);history.replaceState(null,"","#mine");v="mine"}if(!VIEWS.includes(v))v="mine";
@@ -650,6 +680,20 @@ async function loadFeed(){try{const b=await get("/blocks?limit=8",15000);const e
 async function loadColStats(){try{const c=await get("/collection_stats",15000);const top=(c.collections||[]).slice(0,7);const max=Math.max(...top.map(x=>x.wins||0),1);
   $("colStats").innerHTML=top.map(x=>`<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:13px"><b>${esc(x.name)}</b><span class="feed">${fmt(x.wins)} wins · ${fmt(x.win_rate,2)}%</span></div><div class="bar sig"><i style="width:${100*x.wins/max}%"></i></div></div>`).join("")}catch(e){$("colStats").innerHTML='<div class="empty">—</div>'}}
 const nftImg=(n)=>(n.image&&/^https?:\/\//.test(n.image))?n.image:`https://images.pfpvault.com/${n.chain_id}/${(n.contract_address||"").toLowerCase()}/${n.token_id}.webp`;
+/* ---------- MIPs ---------- */
+const MIPS=[
+ ["0000","MIP process and governance","Draft","How rule changes are proposed and decided. Phase 1: Mining Council decides, NFC holders signal by snapshot vote (NFC held 30+ days). Phase 2: binding on-chain votes with a timelock for contract parameters. Emission is immutable and out of scope."],
+ ["0001","Remove the 9-NFT cap","Draft · approved in principle","Mine with every NFT you hold. The cap only stopped honest holders, because anyone inclined could spread NFTs across wallets. Replaced by diminishing returns per collection family: NFTs 1-10 count fully, 11-25 at half, 26-50 at a quarter, beyond 50 nothing."],
+ ["0002","3.0 hashrate model","Draft","Hashrate = cube root of collection value times rarity, then rights tier, companion factor, holder distribution and hold time. Value from real listings and filtered sales, never top bids or last sale. Rarity from traits. Up to 1.5x for holding a year. A diversity bonus up to 1.5x for holding six OG blue-chip families. Project wallets excluded. No collection above 15% of network hashrate."],
+ ["0003","Winner's Green Day","Draft","Green Day becomes a reward for winning: a block won with a paid boost also earns a fixed PC payout on Ethereum, settled daily at 00:00 UTC. Replaces the completed trial of daily partial fee refunds."],
+ ["0004","MEGA/OMEGA weighted by raw hashrate","Draft","MEGA and OMEGA recipients are drawn by raw hashrate only. The small-miner and streak multipliers stay for regular blocks, where they were designed, and no longer compound into the pool payouts."],
+ ["0005","The NFC contract is the halving clock","Final (interface)","The halving happens inside the NFC token contract at every 210,000th token block, automatically. Simulated against the deployed contract on 25 Sep 2026: all checks passed. Every display reads the contract, never the explorer's block number."]];
+const HIST=[["2017","NFT Mining v1 begins with the ChainGuardians community"],["May 2026","v2 launches on Pentagon Chain with the NFC token: 21M cap, 50 per block, halving every 210,000"],["Jun 2026","v1 retired; v2 is the only mining system"],["May–Sep 2026","Green Day trial of daily fee refunds, completed 23 Sep"],["25 Aug 2026","Block cadence standardised to 20 minutes"],["Sep 2026","VIP re-validated at every block election"],["24 Sep 2026","V3 interface; NFTMining 3.0 for Ethereum enters design"]];
+$("mipList").innerHTML=MIPS.map(m=>`<div class="mip" tabindex="0" role="button"><div class="no">MIP-${m[0]}</div><div><div class="t">${esc(m[1])} <span class="pill ${/Final/.test(m[2])?"good":/approved/.test(m[2])?"sig":""}">${esc(m[2])}</span></div><div class="s">${esc(m[3])}</div></div></div>`).join("");
+$("mipList").addEventListener("click",e=>{const m=e.target.closest(".mip");if(m)m.classList.toggle("open")});
+$("mipList").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){const m=e.target.closest(".mip");if(m){e.preventDefault();m.classList.toggle("open")}}});
+$("mipHist").innerHTML=HIST.map(h=>`<div>${esc(h[0])}</div><div>${esc(h[1])}</div>`).join("");
+
 /* ---------- halving: read straight from the NFC token contract ----------
    The token counts its own minted blocks and halves automatically every 210,000.
    Explorer block numbers run ahead of that counter, so never derive the halving from them. */
