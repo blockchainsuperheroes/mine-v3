@@ -631,7 +631,7 @@ async function loadRound(){try{const r=await get("/current_round",12000);setOffl
 $("offlineRetry").addEventListener("click",()=>{state.apiFails=1;loadRound();loadStats();loadFeed();toast("Retrying…")});
 async function loadStats(){try{const s=await get("/stats",12000);state.stats=s;$("tkReward").textContent=fmt(s.current_nfc_reward)+" NFC";$("mReward").textContent=fmt(s.current_nfc_reward)+" NFC";$("mAvg").textContent=mmss(s.avg_block_time);
   if(!state.halv){const left=HALVING-(s.current_block%HALVING);$("tkHalving").textContent=fmt(left)+" blocks";$("hvLeft").textContent=fmt(left);$("hvEta").textContent="≈ "+dur(left*BLOCK_SEC)}
-  const minted=Math.min(CAP,s.current_block*REWARD);$("hvMinted").textContent=fmtHR(minted)+" NFC";}catch(e){}}
+  if(!state.halv){const minted=Math.min(CAP,s.current_block*REWARD);$("hvMinted").textContent=fmtHR(minted)+" NFC"}}catch(e){}}
 async function loadMega(){try{const m=await get("/mega_pool",12000);state.mega=m;state.megaFetchedAt=Date.now();$("tkMega").textContent=fmt(m.blocks_until_mega)+" blk · "+dur(m.estimated_seconds);
   $("plPool").textContent=fmt(m.accumulated_pc,2)+" PC";$("plMega").textContent="#"+fmt(m.next_mega_block);$("plMegaS").textContent=fmt(m.blocks_until_mega)+" blocks · "+dur(m.estimated_seconds)+" · pays "+fmt(m.accumulated_pc*m.payout_percentage/100,2)+" PC";
   $("plOmega").textContent="#"+fmt(m.next_omega_block);$("plOmegaS").textContent=fmt(m.blocks_until_omega)+" blocks · "+dur(m.estimated_seconds_omega);}catch(e){}}
@@ -642,7 +642,7 @@ async function loadFeed(){try{const b=await get("/blocks?limit=8",15000);const e
     const w=b.items[0].winner_wallet||"";const mine=state.wallet&&w.toLowerCase()===state.wallet.toLowerCase();
     if(mine){const nfc=(b.items[0].rewards||[]).filter(r=>r.symbol==="NFC").map(r=>fmt(r.amount))[0]||"50";toast("🎉 You won block #"+fmt(top)+" · +"+nfc+" NFC");document.title="You won #"+fmt(top)+" · NFT Mining 3.0";setTimeout(()=>document.title="NFT Mining 3.0",30000);if(state.wallet)loadMyStatus(state.wallet)}
     else toast("Block #"+fmt(top)+" landed · "+short(w)+" won")}
-  theatre(b.items,isNew);if(isNew){loadArtPool();loadHalving()}
+  theatre(b.items,isNew);if(!state.artPool)seedArtPool(b.items);if(isNew){loadArtPool();loadHalving()}
   b.items.forEach((x,i)=>{const share=x.total_hashrate?100*x.winner_hashrate/x.total_hashrate:0;const me=state.wallet&&x.winner_wallet?.toLowerCase()===state.wallet.toLowerCase();
     const rw=(x.rewards||[]).filter(r=>r.symbol==="NFC").map(r=>fmt(r.amount)+" "+r.symbol)[0]||"—";const extra=(x.rewards||[]).filter(r=>r.symbol!=="NFC").length;
     el.insertAdjacentHTML("beforeend",`<div class="row${me?" me":""}${isNew&&i===0?" fresh":""}"><div class="n">#${fmt(x.block_no)}</div><div><div class="who">${short(x.winner_wallet)}${me?' <span class="pill ore">you</span>':""}</div><div class="meta"><span>HR ${fmt(x.winner_hashrate)} · ${share.toFixed(2)}% of ${fmtHR(x.total_hashrate)}</span><span>${fmt(x.total_miners)} miners</span><span>${ago(x.created_at)}</span></div></div><div class="amt">${rw}<small>${extra?"+"+extra+" sponsor tokens":""}${x.reward_tx_hash?` · <a href="${EXPLORER}/tx/0x${x.reward_tx_hash}" target="_blank" rel="noopener">tx</a>`:""}</small></div></div>`)});
@@ -713,9 +713,11 @@ const keyOf=(n)=>(n.contract_address||"").toLowerCase()+":"+n.token_id;
 const byHr=(a,b)=>(b.hashrate||0)-(a.hashrate||0);
 const IMG_FALLBACK="data:image/svg+xml;utf8,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" rx="10" fill="#182130"/><text x="48" y="56" text-anchor="middle" font-family="monospace" font-size="26" fill="#f0a04b">⛏</text></svg>');
 window.IMG_FALLBACK=IMG_FALLBACK;
-async function loadArtPool(){try{const b=await get("/blocks?limit=40",20000);const seen=new Set();const pool=[];
-  b.items.forEach(x=>(x.winner_nfts||[]).forEach(n=>{const k=keyOf(n);if(seen.has(k))return;seen.add(k);pool.push({...n,winner:x.winner_wallet,block:x.block_no})}));
-  state.artPool=pool;state.artPoolBlocks=b.items;paintArt()}catch(e){}}
+// /v2/blocks costs ~0.5 s per block server-side, so seed from the feed's 8 blocks and extend with 15 in the background.
+function seedArtPool(items){const seen=new Set();const pool=[];
+  items.forEach(x=>(x.winner_nfts||[]).forEach(n=>{const k=keyOf(n);if(seen.has(k))return;seen.add(k);pool.push({...n,winner:x.winner_wallet,block:x.block_no})}));
+  if(!state.artPool||pool.length>state.artPool.length){state.artPool=pool;state.artPoolBlocks=items;paintArt()}}
+async function loadArtPool(){try{const b=await get("/blocks?limit=15",30000);seedArtPool(b.items)}catch(e){}}
 async function ensureMine(w){try{
   const [v,s]=await Promise.all([state.vault&&state.vaultAddr===w?Promise.resolve(state.vault):get("/tokens/"+w+"?include_linked=true",45000),get("/subscription/"+w,20000).catch(()=>null)]);
   if(state.wallet!==w)return;if(!state.vault){state.vault=v;state.vaultAddr=w}
@@ -896,7 +898,7 @@ async function boot(){
   const qs=new URLSearchParams(location.search);const hq=new URLSearchParams((location.hash.split("?")[1]||""));
   const pre=(hq.get("w")||qs.get("w")||"").trim();const embed=hq.get("embed")==="1"||qs.get("embed")==="1";
   if(embed){store.set("v3.intro","1");$("btnLegacy").hidden=true;document.body.classList.add("embed")}
-  if(!store.get("v3.intro")&&(location.hash||"#mine").split("?")[0]==="#mine")showIntro(true);route();setTimeout(loadArtPool,900);loadHalving();setInterval(halvTick,1000);setInterval(()=>{if(!document.hidden)loadHalving()},600000);
+  if(!store.get("v3.intro")&&(location.hash||"#mine").split("?")[0]==="#mine")showIntro(true);route();setTimeout(loadArtPool,2500);loadHalving();setInterval(halvTick,1000);setInterval(()=>{if(!document.hidden)loadHalving()},600000);
   $("sheetX").addEventListener("click",closeSheet);$("sheet").addEventListener("click",e=>{if(e.target===$("sheet"))closeSheet()});document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("sheet").hidden)closeSheet()});
   if(/^0x[a-fA-F0-9]{40}$/.test(pre)){setWallet(pre);toast("Viewing "+short(pre))}loadRound();loadStats();loadMega();loadDiff();loadFeed();loadColStats();
   const w=store.get("v3.wallet");if(!pre&&w&&/^0x[a-fA-F0-9]{40}$/.test(w))setWallet(w);
