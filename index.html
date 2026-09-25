@@ -80,7 +80,18 @@ h3{font:700 13px var(--body);margin:0 0 8px;color:var(--muted);text-transform:up
 .stat .v{font:700 26px var(--display);margin-top:6px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
 .stat .s{color:var(--muted);font-size:13px;margin-top:4px}
 .stat .v.ore{color:var(--ore)}.stat .v.sig{color:var(--signal)}
-.hero{display:grid;grid-template-columns:auto 1fr;gap:22px;align-items:center}
+.hero{display:grid;grid-template-columns:auto 1fr auto;gap:22px;align-items:center}
+.cube-wrap{width:150px;display:flex;flex-direction:column;align-items:center;gap:14px;perspective:600px}
+.cube{position:relative;width:96px;height:96px;transform-style:preserve-3d;animation:spin3d 18s linear infinite}
+.cube.snap{animation:spin3d 18s linear infinite,snap .9s ease-out}
+.cube .f{position:absolute;inset:0;width:96px;height:96px;object-fit:cover;object-position:center top;border-radius:10px;border:1px solid var(--line2);background:var(--raised);backface-visibility:hidden}
+.cube .f1{transform:translateZ(48px)}.cube .f2{transform:rotateY(90deg) translateZ(48px)}.cube .f3{transform:rotateY(180deg) translateZ(48px)}.cube .f4{transform:rotateY(-90deg) translateZ(48px)}.cube .f5{transform:rotateX(90deg) translateZ(48px)}.cube .f6{transform:rotateX(-90deg) translateZ(48px)}
+.cube-cap{font:600 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+@keyframes spin3d{0%{transform:rotateX(-18deg) rotateY(0)}100%{transform:rotateX(-18deg) rotateY(360deg)}}
+@keyframes snap{0%{filter:drop-shadow(0 0 0 transparent)}30%{filter:drop-shadow(0 0 18px #5ad1c9)}100%{filter:none}}
+@media (max-width:1200px){.hero{grid-template-columns:auto 1fr}.cube-wrap{grid-column:1/-1;flex-direction:row;justify-content:center}}
+@media (prefers-reduced-motion:reduce){.cube{animation:none;transform:rotateX(-18deg) rotateY(30deg)}}
+body.embed .cube-wrap{display:none}
 .ring{width:190px;height:190px;position:relative}
 .ring svg{width:100%;height:100%;transform:rotate(-90deg)}
 .ring .c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
@@ -291,6 +302,7 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
           <div class="stat"><div class="k">Daily bonus</div><div class="v sig" id="mBonus">—</div><div class="s" id="mBonusS">—</div></div>
           <div class="stat"><div class="k">Your odds this block</div><div class="v" id="mOdds">—</div><div class="s" id="mOddsS">connect a wallet</div></div>
         </div>
+        <div class="cube-wrap" aria-hidden="true"><div class="cube" id="cube"><img class="f f1" alt=""><img class="f f2" alt=""><img class="f f3" alt=""><img class="f f4" alt=""><img class="f f5" alt=""><img class="f f6" alt=""></div><div class="cube-cap">recent winners</div></div>
       </div>
       <div class="section">
         <h2>Block election <span class="pill" id="thStatus">live</span></h2>
@@ -561,7 +573,9 @@ async function loadArtPool(){try{const b=await get("/blocks?limit=40",20000);con
 function buildTrain(){const pool=state.artPool||[];if(pool.length<8||document.body.classList.contains("embed"))return;
   const mk=(arr)=>arr.map(n=>`<img src="${nftImg(n)}" alt="" loading="lazy" title="${esc(n.name||"")} · ${esc(n.collection||"")} · block #${fmt(n.block)}" data-w="${esc(n.winner||"")}" onerror="this.remove()">`).join("");
   const a=pool.slice(0,Math.min(60,pool.length)),b=[...pool].reverse().slice(0,Math.min(60,pool.length));
-  $("lane1").innerHTML=mk(a)+mk(a);$("lane2").innerHTML=mk(b)+mk(b)}
+  $("lane1").innerHTML=mk(a)+mk(a);$("lane2").innerHTML=mk(b)+mk(b);
+  const faces=$("cube").querySelectorAll(".f");faces.forEach((f,i)=>{const n=pool[i];if(n){f.src=nftImg(n);f.title=n.name||""}});
+  if(state.lastBlockNo&&state.cubeBlock&&state.lastBlockNo>state.cubeBlock){const c=$("cube");c.classList.remove("snap");void c.offsetWidth;c.classList.add("snap")}state.cubeBlock=state.lastBlockNo}
 $("train").addEventListener("click",e=>{const im=e.target.closest("img");if(!im||!im.dataset.w)return;state.blkWinner=im.dataset.w;state.blkPage=1;$("blkWinner").value=im.dataset.w;loaded.blocks=1;location.hash="#blocks";loadBlocks();toast("Blocks won by "+short(im.dataset.w))});
 function theatre(items,isNew){const hop=$("thHopper");const nfts=[];items.forEach(x=>(x.winner_nfts||[]).slice(0,4).forEach(n=>nfts.push(n)));
   if(!hop.dataset.built||isNew){hop.innerHTML="";const pool=nfts.slice(0,24);pool.forEach((n,i)=>{const im=document.createElement("img");im.className="th-tile";im.src=nftImg(n);im.alt="";im.loading="lazy";im.style.left=(6+Math.random()*88)+"%";im.style.setProperty("--d",(7+Math.random()*6).toFixed(1)+"s");im.style.setProperty("--s",(-Math.random()*12).toFixed(1)+"s");im.style.setProperty("--x",((Math.random()-.5)*80).toFixed(0)+"px");im.style.setProperty("--r",((Math.random()-.5)*40).toFixed(0)+"deg");im.onerror=()=>im.remove();hop.appendChild(im)});hop.dataset.built="1"}
