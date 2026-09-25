@@ -107,6 +107,30 @@ h3{font:700 13px var(--body);margin:0 0 8px;color:var(--muted);text-transform:up
 .cube-wrap.idle .cube{animation-duration:40s}
 .cube-wrap.idle .cube .f{filter:grayscale(.85) brightness(.7)}
 .hero.mining{box-shadow:0 0 0 1px rgba(88,196,122,.35),0 0 44px rgba(88,196,122,.08)}
+.th-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:14px;align-items:stretch}
+@media (max-width:900px){.th-grid{grid-template-columns:1fr}}
+.th-record .kv{font-size:12.5px}
+.th-record .kv div:nth-child(even){overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px}
+.th-record .ok{color:var(--good)}
+.halv-cd{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+.halv-cd .k{font:600 11px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.halv-cd .cd{font:700 clamp(26px,5vw,38px) var(--mono);font-variant-numeric:tabular-nums;color:var(--ore);margin-top:4px}
+.halv-cd .s{color:var(--muted);font-size:13px}
+.halv-banner{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:0 0 14px;padding:10px 14px;border-radius:10px;background:linear-gradient(90deg,var(--ore-soft),var(--signal-soft));border:1px solid var(--ore);color:var(--ink);text-decoration:none;font-size:14px}
+.halv-banner .hb-k{font:700 11px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ore)}
+.halv-banner b{font-family:var(--mono)}
+.fanfare{position:fixed;inset:0;z-index:70;display:flex;align-items:center;justify-content:center;padding:16px;background:radial-gradient(800px 500px at 50% 40%,rgba(240,160,75,.28),rgba(6,9,12,.92) 70%);overflow:hidden}
+.ff-rain{position:absolute;inset:0;pointer-events:none}
+.ff-rain img{position:absolute;top:-70px;width:52px;height:52px;border-radius:10px;object-fit:cover;object-position:center top;border:1px solid rgba(240,160,75,.6);animation:fall var(--d,5s) linear var(--s,0s) infinite}
+@keyframes fall{0%{transform:translateY(0) rotate(0)}100%{transform:translateY(calc(100vh + 140px)) rotate(var(--r,180deg))}}
+.ff-card{position:relative;text-align:center;background:var(--surface);border:1px solid var(--ore);border-radius:18px;padding:28px 24px;max-width:520px;width:100%;box-shadow:0 0 80px rgba(240,160,75,.35);animation:reveal2 .6s ease-out}
+@keyframes reveal2{0%{transform:scale(.85);opacity:0}100%{transform:none;opacity:1}}
+.ff-card .eyebrow{font:700 12px var(--mono);letter-spacing:.2em;text-transform:uppercase;color:var(--ore)}
+.ff-big{font:700 clamp(26px,5vw,36px) var(--display);margin:10px 0;line-height:1.1;text-wrap:balance}
+.ff-card p{color:var(--muted);margin:0 auto 14px;max-width:44ch}
+.ff-row{display:flex;justify-content:center;gap:10px;margin-bottom:18px;font:600 13px var(--mono)}
+.ff-row span{padding:6px 10px;border-radius:8px;background:var(--raised);border:1px solid var(--line2)}
+@media (prefers-reduced-motion:reduce){.ff-rain{display:none}.ff-card{animation:none}}
 .sheet{position:fixed;inset:0;z-index:65;background:rgba(6,9,12,.72);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px}
 .sheet-card{position:relative;background:var(--surface);border:1px solid var(--line2);border-radius:16px;padding:20px;max-width:520px;width:100%;max-height:calc(100vh - 32px);overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.6)}
 .sheet-x{position:absolute;right:10px;top:10px}
@@ -319,6 +343,7 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
   <main>
     <!-- MINE -->
     <section class="view" id="view-mine">
+      <a class="halv-banner" id="halvBanner" href="#halving" hidden><span class="hb-k">Halving</span> in <b id="hbCd">—</b> · block reward drops to <b id="hbNext">—</b></a>
       <h1>Live network</h1>
       <p class="sub">Every 20 minutes one enrolled wallet wins the block, weighted by hashrate. Your NFTs are the miners.</p>
       <div class="card raised hero">
@@ -332,7 +357,7 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
           <div class="stat"><div class="k">Difficulty</div><div class="v" id="mDiff">—</div><div class="s" id="mDiffS">24h avg —</div></div>
           <div class="stat"><div class="k">Avg block time</div><div class="v" id="mAvg">—</div><div class="s">target 20:00</div></div>
           <div class="stat"><div class="k">Daily bonus</div><div class="v sig" id="mBonus">—</div><div class="s" id="mBonusS">—</div></div>
-          <div class="stat"><div class="k">Your odds this block</div><div class="v" id="mOdds">—</div><div class="s" id="mOddsS">connect a wallet</div></div>
+          <div class="stat"><div class="k">Your share this block</div><div class="v" id="mOdds">—</div><div class="s" id="mOddsS">connect a wallet</div></div>
         </div>
         <div class="cube-wrap" id="cubeWrap">
           <div class="cube-status"><span class="lamp"></span><span id="cubeStatusT">Recent winners</span></div>
@@ -342,6 +367,7 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
       </div>
       <div class="section">
         <h2>Block election <span class="pill" id="thStatus">live</span></h2>
+        <div class="th-grid">
         <div class="theatre" id="theatre">
           <div class="th-hopper" id="thHopper"></div>
           <div class="th-funnel"></div>
@@ -351,6 +377,8 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
           </div>
           <div class="th-caption">Every enrolled NFT drops into the hopper. One is elected each block, weighted by hashrate, from a commit-reveal seed. Over time your share of blocks equals your share of hashrate.</div>
         </div>
+        <div class="card th-record" id="thRecord"><h3>Block record</h3><div class="sk" style="height:180px">&nbsp;</div></div>
+        </div>
       </div>
       <div class="grid g2 section">
         <div>
@@ -359,7 +387,7 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
         </div>
         <div>
           <h2>Your mining</h2>
-          <div class="card" id="myStatus"><div class="empty">Connect a wallet to see your round status, hashrate and odds.</div></div>
+          <div class="card" id="myStatus"><div class="empty">Connect a wallet to see your round status, hashrate and share of blocks.</div></div>
           <h2 style="margin-top:18px">Winner's Green Day <span class="pill sig">coming</span></h2>
           <div class="card" id="gdPreview">
             <p style="margin:0 0 10px;color:var(--muted);font-size:13.5px">Green Day returns as a reward for winning. When a paid boost wins a block, the winner gets the block's NFC and a Green Day PC payout on Ethereum, settled once a day at 00:00 UTC. One win, two rewards.</p>
@@ -437,7 +465,7 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
         <div class="card stat"><div class="k">Next OMEGA</div><div class="v" id="plOmega">—</div><div class="s" id="plOmegaS">—</div></div>
       </div>
       <div class="grid g2 section">
-        <div><h2>Jackpot history</h2><div class="list" id="plEvents"><div class="sk">loading</div></div></div>
+        <div><h2>MEGA / OMEGA payout history</h2><div class="list" id="plEvents"><div class="sk">loading</div></div></div>
         <div>
           <h2>Green Day</h2>
           <div class="card" id="plGreenStats"><div class="sk">loading</div></div>
@@ -451,11 +479,16 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
       <h1>Halving</h1>
       <p class="sub">50 NFC per block, halving every 210,000 blocks, 21 million cap. Enforced on-chain by the token.</p>
       <div class="grid g4" style="margin-bottom:14px">
-        <div class="card stat"><div class="k">Current block</div><div class="v" id="hvBlock">—</div></div>
+        <div class="card stat"><div class="k">Token block (on-chain)</div><div class="v" id="hvBlock">—</div><div class="s" id="hvBlockS">counted by the NFC contract</div></div>
         <div class="card stat"><div class="k">Blocks to halving</div><div class="v ore" id="hvLeft">—</div><div class="s" id="hvEta">—</div></div>
         <div class="card stat"><div class="k">Minted so far</div><div class="v" id="hvMinted">—</div><div class="s">of 21,000,000</div></div>
-        <div class="card stat"><div class="k">Reward after halving</div><div class="v sig">25 NFC</div><div class="s">then 12.5, 6.25 …</div></div>
+        <div class="card stat"><div class="k">Reward after halving</div><div class="v sig" id="hvNext">25 NFC</div><div class="s" id="hvNextS">then 12.5, 6.25 …</div></div>
       </div>
+      <div class="card raised halv-cd">
+        <div><div class="k">Next halving · countdown</div><div class="cd" id="hvCd">—</div><div class="s" id="hvCdS">reading the NFC contract…</div></div>
+        <button class="btn" type="button" id="hvPreview">Preview the halving celebration</button>
+      </div>
+      <p class="hint" style="margin:8px 0 16px">The halving is enforced by the NFC token contract itself: it counts its own minted blocks and halves the reward automatically at every 210,000th. No one has to switch it on. It was simulated against the deployed contract on 25 Sep 2026 (boundary blocks, every era, the 21M cap and miner-only minting): all checks passed. The contract's block count can differ from the explorer's block number, so this countdown reads the contract directly.</p>
       <div class="card"><svg class="chart" id="hvChart" viewBox="0 0 720 260" role="img" aria-label="Emission schedule"></svg></div>
     </section>
 
@@ -481,7 +514,7 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
         </div>
         <div class="section grid g2">
           <div class="card"><h3>Adding a collection</h3><div class="kv"><div>Verified contract, ERC-721 or 1155</div><div>required</div><div>Age</div><div>≥ 90 days</div><div>Holders</div><div>≥ 500</div><div>Rights declaration</div><div>license URL</div><div>Bid depth check</div><div>≥ 3 bidders</div><div>Sponsor pool (optional)</div><div>fast track</div><div>Community vote</div><div>NFC holders</div></div></div>
-          <div class="card"><h3>What changes from v2</h3><div class="kv"><div>VIP multipliers</div><div>removed</div><div>Pity timer on jackpots</div><div>removed</div><div>Per-wallet refunds</div><div>removed</div><div>Green Day</div><div>winner-based</div><div>Delegated wallets</div><div>supported</div><div>Settlement</div><div>Ethereum mainnet</div></div></div>
+          <div class="card"><h3>What changes from v2</h3><div class="kv"><div>VIP multipliers</div><div>removed</div><div>Pity timer on MEGA/OMEGA</div><div>removed</div><div>Per-wallet refunds</div><div>removed</div><div>Green Day</div><div>winner-based</div><div>Delegated wallets</div><div>supported</div><div>Settlement</div><div>Ethereum mainnet</div></div></div>
         </div>
         <div class="section card raised"><h3>Status</h3><p style="margin:0">Contracts and token: in design. Public testnet: after the research and audit pass. This interface already runs on the live Pentagon Chain network so the experience is ready before the chain is.</p></div>
       </div>
@@ -498,6 +531,17 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
   </nav>
 </div>
 <div class="toast" id="toast" hidden></div>
+
+<div class="fanfare" id="fanfare" hidden role="dialog" aria-modal="true" aria-labelledby="ffTitle">
+  <div class="ff-rain" id="ffRain" aria-hidden="true"></div>
+  <div class="ff-card">
+    <div class="eyebrow" id="ffEyebrow">Halving</div>
+    <div class="ff-big" id="ffTitle">Block reward is now 25 NFC</div>
+    <p id="ffSub"></p>
+    <div class="ff-row" id="ffRow"></div>
+    <button class="btn primary" type="button" id="ffClose">Keep mining</button>
+  </div>
+</div>
 
 <div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-label="NFT details">
   <div class="sheet-card"><button class="btn sm ghost sheet-x" type="button" id="sheetX" aria-label="Close">✕</button><div id="sheetBody"></div></div>
@@ -586,7 +630,7 @@ async function loadRound(){try{const r=await get("/current_round",12000);setOffl
   updateOdds();}catch(e){setOffline(true);$("tkCountdown").textContent="offline"}}
 $("offlineRetry").addEventListener("click",()=>{state.apiFails=1;loadRound();loadStats();loadFeed();toast("Retrying…")});
 async function loadStats(){try{const s=await get("/stats",12000);state.stats=s;$("tkReward").textContent=fmt(s.current_nfc_reward)+" NFC";$("mReward").textContent=fmt(s.current_nfc_reward)+" NFC";$("mAvg").textContent=mmss(s.avg_block_time);
-  const left=HALVING-(s.current_block%HALVING);$("tkHalving").textContent=fmt(left)+" blocks";$("hvBlock").textContent="#"+fmt(s.current_block);$("hvLeft").textContent=fmt(left);$("hvEta").textContent="≈ "+dur(left*BLOCK_SEC);
+  if(!state.halv){const left=HALVING-(s.current_block%HALVING);$("tkHalving").textContent=fmt(left)+" blocks";$("hvLeft").textContent=fmt(left);$("hvEta").textContent="≈ "+dur(left*BLOCK_SEC)}
   const minted=Math.min(CAP,s.current_block*REWARD);$("hvMinted").textContent=fmtHR(minted)+" NFC";}catch(e){}}
 async function loadMega(){try{const m=await get("/mega_pool",12000);state.mega=m;state.megaFetchedAt=Date.now();$("tkMega").textContent=fmt(m.blocks_until_mega)+" blk · "+dur(m.estimated_seconds);
   $("plPool").textContent=fmt(m.accumulated_pc,2)+" PC";$("plMega").textContent="#"+fmt(m.next_mega_block);$("plMegaS").textContent=fmt(m.blocks_until_mega)+" blocks · "+dur(m.estimated_seconds)+" · pays "+fmt(m.accumulated_pc*m.payout_percentage/100,2)+" PC";
@@ -598,7 +642,7 @@ async function loadFeed(){try{const b=await get("/blocks?limit=8",15000);const e
     const w=b.items[0].winner_wallet||"";const mine=state.wallet&&w.toLowerCase()===state.wallet.toLowerCase();
     if(mine){const nfc=(b.items[0].rewards||[]).filter(r=>r.symbol==="NFC").map(r=>fmt(r.amount))[0]||"50";toast("🎉 You won block #"+fmt(top)+" · +"+nfc+" NFC");document.title="You won #"+fmt(top)+" · NFT Mining 3.0";setTimeout(()=>document.title="NFT Mining 3.0",30000);if(state.wallet)loadMyStatus(state.wallet)}
     else toast("Block #"+fmt(top)+" landed · "+short(w)+" won")}
-  theatre(b.items,isNew);if(isNew)loadArtPool();
+  theatre(b.items,isNew);if(isNew){loadArtPool();loadHalving()}
   b.items.forEach((x,i)=>{const share=x.total_hashrate?100*x.winner_hashrate/x.total_hashrate:0;const me=state.wallet&&x.winner_wallet?.toLowerCase()===state.wallet.toLowerCase();
     const rw=(x.rewards||[]).filter(r=>r.symbol==="NFC").map(r=>fmt(r.amount)+" "+r.symbol)[0]||"—";const extra=(x.rewards||[]).filter(r=>r.symbol!=="NFC").length;
     el.insertAdjacentHTML("beforeend",`<div class="row${me?" me":""}${isNew&&i===0?" fresh":""}"><div class="n">#${fmt(x.block_no)}</div><div><div class="who">${short(x.winner_wallet)}${me?' <span class="pill ore">you</span>':""}</div><div class="meta"><span>HR ${fmt(x.winner_hashrate)} · ${share.toFixed(2)}% of ${fmtHR(x.total_hashrate)}</span><span>${fmt(x.total_miners)} miners</span><span>${ago(x.created_at)}</span></div></div><div class="amt">${rw}<small>${extra?"+"+extra+" sponsor tokens":""}${x.reward_tx_hash?` · <a href="${EXPLORER}/tx/0x${x.reward_tx_hash}" target="_blank" rel="noopener">tx</a>`:""}</small></div></div>`)});
@@ -606,6 +650,60 @@ async function loadFeed(){try{const b=await get("/blocks?limit=8",15000);const e
 async function loadColStats(){try{const c=await get("/collection_stats",15000);const top=(c.collections||[]).slice(0,7);const max=Math.max(...top.map(x=>x.wins||0),1);
   $("colStats").innerHTML=top.map(x=>`<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:13px"><b>${esc(x.name)}</b><span class="feed">${fmt(x.wins)} wins · ${fmt(x.win_rate,2)}%</span></div><div class="bar sig"><i style="width:${100*x.wins/max}%"></i></div></div>`).join("")}catch(e){$("colStats").innerHTML='<div class="empty">—</div>'}}
 const nftImg=(n)=>(n.image&&/^https?:\/\//.test(n.image))?n.image:`https://images.pfpvault.com/${n.chain_id}/${(n.contract_address||"").toLowerCase()}/${n.token_id}.webp`;
+/* ---------- halving: read straight from the NFC token contract ----------
+   The token counts its own minted blocks and halves automatically every 210,000.
+   Explorer block numbers run ahead of that counter, so never derive the halving from them. */
+const NFC_TOKEN="0xc1c266d350ccf5b1d0b7739da5cb2e5fee1c8d92",PC_RPC="https://rpc.pentagon.games";
+async function nfcCall(sel){const r=await fetch(PC_RPC,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method:"eth_call",params:[{to:NFC_TOKEN,data:sel},"latest"]})});const j=await r.json();if(!j.result)throw new Error("rpc");return BigInt(j.result)}
+async function loadHalving(){try{const [cb,cr,bu,era,ts]=await Promise.all(["0xe12ed13c","0x07621eca","0xb3e19df1","0x973628f6","0x18160ddd"].map(nfcCall));
+  const h={block:Number(cb),reward:Number(cr/10n**10n)/1e8,left:Number(bu),era:Number(era),supply:Number(ts/10n**14n)/1e4,at:Date.now()};state.halv=h;
+  const prev=Number(store.get("v3.era"));if(store.get("v3.era")!==null&&!isNaN(prev)&&h.era>prev)celebrate(h.era,h.reward,false);store.set("v3.era",String(h.era));
+  renderHalving()}catch(e){}}
+function halvEta(){const h=state.halv;if(!h)return null;const sec=state.stats?.avg_block_time||BLOCK_SEC;return h.at+h.left*sec*1000}
+function renderHalving(){const h=state.halv;if(!h)return;const next=h.reward/2;const eta=halvEta();
+  $("hvBlock").textContent="#"+fmt(h.block);$("hvBlockS").textContent="era "+h.era+" · "+fmt(h.reward,h.reward<1?8:2)+" NFC per block now";
+  $("hvLeft").textContent=fmt(h.left);$("hvEta").textContent="≈ "+new Date(eta).toLocaleDateString(undefined,{year:"numeric",month:"short",day:"numeric"});
+  $("hvMinted").textContent=fmtHR(h.supply)+" NFC";$("hvNext").textContent=fmt(next,next<1?8:next%1?2:0)+" NFC";$("hvNextS").textContent="at token block #"+fmt(h.block+h.left);
+  $("hbNext").textContent=fmt(next,next%1?2:0)+" NFC";$("tkReward").textContent=fmt(h.reward,h.reward%1?2:0)+" NFC";$("mReward").textContent=fmt(h.reward,h.reward%1?2:0)+" NFC";
+  if($("view-halving").classList.contains("on"))drawHalving()}
+function halvTick(){const eta=halvEta();if(!eta)return;const s=Math.max(0,(eta-Date.now())/1000);const d=Math.floor(s/86400),hh=Math.floor(s%86400/3600),mm=Math.floor(s%3600/60),ss=Math.floor(s%60);
+  const txt=(d?d+"d ":"")+String(hh).padStart(2,"0")+":"+String(mm).padStart(2,"0")+":"+String(ss).padStart(2,"0");
+  $("hvCd").textContent=txt;$("hvCdS").textContent=fmt(state.halv.left)+" blocks to go · estimate uses the live average block time";$("hbCd").textContent=txt;
+  $("tkHalving").textContent=fmt(state.halv.left)+" blk · "+(d>60?Math.round(d/30.4)+" mo":d?d+"d":txt);
+  $("halvBanner").hidden=state.halv.left>72*30}
+function celebrate(era,reward,preview){const f=$("fanfare");const pool=(state.artPool||[]).slice(0,18);
+  $("ffEyebrow").textContent=(preview?"Preview · ":"")+"Halving · era "+era;
+  $("ffTitle").textContent="Block reward is now "+fmt(reward,reward%1?2:0)+" NFC";
+  $("ffSub").textContent=preview?"This is what every miner will see the moment the NFC contract crosses the next halving. It fires automatically from on-chain data; nobody has to remember.":"The NFC contract just halved the block reward, exactly on schedule. New NFC is now twice as scarce.";
+  $("ffRow").innerHTML=`<span>era ${era}</span><span>${fmt(reward*2,reward*2%1?2:0)} → ${fmt(reward,reward%1?2:0)} NFC</span><span>cap 21,000,000</span>`;
+  $("ffRain").innerHTML=pool.map(n=>`<img src="${nftImg(n)}" alt="" style="left:${(Math.random()*94).toFixed(1)}%;--d:${(4+Math.random()*4).toFixed(1)}s;--s:${(-Math.random()*6).toFixed(1)}s;--r:${Math.round((Math.random()-.5)*540)}deg" onerror="this.remove()">`).join("");
+  f.hidden=false;$("ffClose").focus()}
+$("ffClose").addEventListener("click",()=>{$("fanfare").hidden=true;$("ffRain").innerHTML=""});
+$("hvPreview").addEventListener("click",()=>{const h=state.halv||{era:0,reward:50};celebrate(h.era+1,h.reward/2,true)});
+
+/* ---------- block record: explorer-style details for the latest election ---------- */
+async function sha256hex(t){const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(t));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}
+async function loadRecord(top){if(!top||state.recordBlock===top.block_no)return;state.recordBlock=top.block_no;
+  try{const v=await get("/verify/"+top.block_no,20000);const b=v.block||{};const w=(v.participants||[]).find(p=>p.is_winner);
+    const share=100*(b.winner_hashrate||0)/Math.max(1,b.total_hashrate||1);
+    let commit="published";try{if(b.seed_reveal&&b.seed_hash&&await sha256hex(b.seed_reveal)===b.seed_hash)commit='<span class="ok">✓ reveal matches commit</span>'}catch(e){}
+    const inRange=w&&b.random_number>=w.range_start&&b.random_number<=w.range_end;
+    const rw=(top.rewards||[]).map(r=>fmt(r.amount,r.amount<1?3:0)+" "+r.symbol).join(" · ");
+    $("thRecord").innerHTML=`<h3>Block record · #${fmt(b.block_no)}</h3><div class="kv">
+      <div>Elected wallet</div><div><a href="#blocks" data-w="${esc(b.winner_wallet_full||"")}" class="rec-w">${short(b.winner_wallet_full)}</a></div>
+      <div>Its hashrate</div><div>${fmt(b.winner_hashrate)} of ${fmt(b.total_hashrate)} · ${share.toFixed(2)}%</div>
+      <div>Miners in the election</div><div>${fmt(b.total_miners)}</div>
+      <div>Difficulty</div><div>${fmt(b.difficulty,1)}</div>
+      <div>Draw number</div><div>${fmt(b.random_number)} of ${fmt(b.total_hashrate)}${inRange?' <span class="ok">✓ in range</span>':""}</div>
+      <div>Elected range</div><div>${w?fmt(w.range_start)+" – "+fmt(w.range_end):"—"}</div>
+      <div>Seed commit</div><div title="${esc(b.seed_hash||"")}">${esc((b.seed_hash||"").slice(0,14))}…</div>
+      <div>Seed reveal</div><div>${commit}</div>
+      <div>Minted</div><div title="${esc(rw)}">${esc(rw)||"—"}</div>
+      <div>Settlement</div><div>${top.reward_tx_hash?`<a href="${EXPLORER}/tx/0x${top.reward_tx_hash}" target="_blank" rel="noopener">on-chain tx ↗</a>`:'<span class="pill warn">pending</span>'}</div>
+    </div><p class="hint" style="margin-bottom:0">No house edge: new NFC is minted by the contract, not taken from anyone. Mining on the free tier costs nothing. Boosts are an optional fee that funds the MEGA/OMEGA pools (80%) and the treasury (20%).</p>`;
+    const a=$("thRecord").querySelector(".rec-w");if(a)a.addEventListener("click",()=>{state.blkWinner=a.dataset.w;state.blkPage=1;$("blkWinner").value=a.dataset.w;loaded.blocks=1;loadBlocks()});
+  }catch(e){$("thRecord").innerHTML='<h3>Block record</h3><p class="hint">Record unavailable right now.</p>'}}
+
 /* ---------- art pool, my NFTs, train, cube ----------
    Train lanes and cube each have a job:
    - not connected: recent winners + one tile per winning collection
@@ -670,7 +768,7 @@ async function openNft(t){const n=t.n,ctx=t.ctx;const ca=(n.contract_address||""
     :`<p class="hint">No network record for this collection yet. It has not won a block since tracking began.</p>`}
 function theatre(items,isNew){const hop=$("thHopper");const nfts=[];items.forEach(x=>(x.winner_nfts||[]).slice(0,4).forEach(n=>nfts.push(n)));
   if(!hop.dataset.built||isNew){hop.innerHTML="";const pool=nfts.slice(0,24);pool.forEach((n,i)=>{const im=document.createElement("img");im.className="th-tile";im.src=nftImg(n);im.alt="";im.loading="lazy";im.style.left=(6+Math.random()*88)+"%";im.style.setProperty("--d",(7+Math.random()*6).toFixed(1)+"s");im.style.setProperty("--s",(-Math.random()*12).toFixed(1)+"s");im.style.setProperty("--x",((Math.random()-.5)*80).toFixed(0)+"px");im.style.setProperty("--r",((Math.random()-.5)*40).toFixed(0)+"deg");im.onerror=()=>im.remove();hop.appendChild(im)});hop.dataset.built="1"}
-  const top=items[0];const first=(top?.winner_nfts||[])[0];
+  const top=items[0];const first=(top?.winner_nfts||[])[0];loadRecord(top);
   if(top&&first){$("thImg").onerror=()=>{const alt=(top.winner_nfts||[]).slice(1).map(nftImg)[0];if(alt&&$("thImg").src!==alt)$("thImg").src=alt;else $("thImg").style.visibility="hidden"};$("thImg").style.visibility="";$("thImg").src=nftImg(first);$("thName").textContent=first.name||("#"+first.token_id);$("thSub").textContent=`${first.collection||""} · block #${fmt(top.block_no)} · ${(100*top.winner_hashrate/Math.max(1,top.total_hashrate)).toFixed(2)}% of hashrate`;$("thReveal").hidden=false;$("thStatus").textContent=isNew?"elected just now":"last election";$("thStatus").className="pill "+(isNew?"ore":"")}}
 function tick(){const r=state.round;if(!r)return;const elapsed=(Date.now()-state.roundFetchedAt)/1000;const left=Math.max(0,r.countdown_seconds-elapsed);const total=r.round_duration_seconds||BLOCK_SEC;
   $("ringTime").textContent=mmss(left);$("tkCountdown").textContent=mmss(left);
@@ -691,7 +789,7 @@ async function loadMyStatus(w){try{const s=await get("/mining_status/"+w,20000);
 function setWallet(w){state.wallet=w;state.vault=null;state.sel.clear();loaded.rewards=0;store.set("v3.wallet",w||"");
   $("wDot").hidden=!w;$("wLabel").textContent=w?"Connected":"Connect wallet";$("wAddr").textContent=w?short(w):"";$("vaultAddr").value=w||"";
   state.mine=null;state.lastPart=undefined;
-  if(w){loadMyStatus(w);ensureMine(w);const v=(location.hash||"#mine").slice(1);if(v==="vault")loadVault(w);if(v==="rewards"){loaded.rewards=1;loadRewards(w)}}else{$("myStatus").innerHTML='<div class="empty">Connect a wallet to see your round status, hashrate and odds.</div>';state.myStatus=null;updateOdds();paintArt()}}
+  if(w){loadMyStatus(w);ensureMine(w);const v=(location.hash||"#mine").slice(1);if(v==="vault")loadVault(w);if(v==="rewards"){loaded.rewards=1;loadRewards(w)}}else{$("myStatus").innerHTML='<div class="empty">Connect a wallet to see your round status, hashrate and share of blocks.</div>';state.myStatus=null;updateOdds();paintArt()}}
 async function connect(){if(state.wallet){setWallet(null);toast("Disconnected");return}
   if(window.ethereum){try{const acc=await window.ethereum.request({method:"eth_requestAccounts"});if(acc&&acc[0]){setWallet(acc[0]);toast("Connected "+short(acc[0]));return}}catch(e){toast("Wallet request rejected")}}
   const a=prompt("No wallet extension found. Paste an address to view (read-only):");if(a&&/^0x[a-fA-F0-9]{40}$/.test(a.trim())){setWallet(a.trim());toast("Viewing "+short(a.trim()))}}
@@ -758,12 +856,12 @@ $("lbFindMe").addEventListener("click",()=>{if(!state.wallet){toast("Connect a w
 
 /* ---------- pools ---------- */
 async function loadPools(){loadMega();
-  try{const e=await get("/mega_events?limit=8",20000);$("plEvents").innerHTML=e.items.map(x=>`<div class="row"><div class="n">${x.event_type==="omega_payout"?'<span class="pill ore">OMEGA</span>':'<span class="pill sig">MEGA</span>'}</div><div><div class="who">${short(x.winner_wallet)}</div><div class="meta"><span>block #${fmt(x.block_no)}</span><span>${ago(x.created_at)}</span></div></div><div class="amt">${fmt(x.amount,2)} PC</div></div>`).join("")||'<div class="empty">No jackpots yet.</div>'}catch(e){$("plEvents").innerHTML='<div class="empty">Unavailable.</div>'}
+  try{const e=await get("/mega_events?limit=8",20000);$("plEvents").innerHTML=e.items.map(x=>`<div class="row"><div class="n">${x.event_type==="omega_payout"?'<span class="pill ore">OMEGA</span>':'<span class="pill sig">MEGA</span>'}</div><div><div class="who">${short(x.winner_wallet)}</div><div class="meta"><span>block #${fmt(x.block_no)}</span><span>${ago(x.created_at)}</span></div></div><div class="amt">${fmt(x.amount,2)} PC</div></div>`).join("")||'<div class="empty">No MEGA or OMEGA payouts yet.</div>'}catch(e){$("plEvents").innerHTML='<div class="empty">Unavailable.</div>'}
   try{const s=await get("/green-day/stats",20000);$("plGreenStats").innerHTML=`<div class="kv"><div>Green Days distributed</div><div>${fmt(s.total_green_days)}</div><div>Total paid</div><div>${fmt(s.total_distributed_pc,2)} PC</div><div>Unique recipients</div><div>${fmt(s.unique_recipients)}</div><div>Last</div><div>${esc(s.last_green_day)}</div></div><p class="hint" style="margin-bottom:0">Trial program completed. <a href="/greenday" target="_blank" rel="noopener">Notice</a> · next: Green Day for block winners.</p>`}catch(e){$("plGreenStats").innerHTML='<div class="empty">—</div>'}
   try{const h=await get("/green-day/history?limit=8",20000);const items=Array.isArray(h)?h:(h.items||h.green_days||[]);$("plGreen").innerHTML=items.map(x=>{const st=x.status==="completed"?'<span class="pill good">paid</span>':'<span class="pill crit">'+esc(x.status)+'</span>';return`<div class="row"><div class="n">${esc(x.date)}</div><div><div class="who">${fmt(x.recipient_count)} miners · ${fmt(x.amount_each,4)} PC each</div><div class="meta"><span>${x.skip_reason?esc(x.skip_reason.split(" - ")[0]):fmt(x.total_amount,4)+" PC total"}</span></div></div><div class="amt">${st}</div></div>`}).join("")}catch(e){}}
 
 /* ---------- halving chart ---------- */
-function drawHalving(){const svg=$("hvChart");const cur=state.stats?.current_block||0;const W=720,H=260,L=44,R=16,T=18,B=34;const eras=8;const maxX=HALVING*eras;
+function drawHalving(){const svg=$("hvChart");const cur=state.halv?.block||state.stats?.current_block||0;const W=720,H=260,L=44,R=16,T=18,B=34;const eras=8;const maxX=HALVING*eras;
   const x=(b)=>L+(W-L-R)*b/maxX,y=(v)=>T+(H-T-B)*(1-v/REWARD);let d="";let cum=0;let supplyPts=[];
   for(let e=0;e<eras;e++){const r=REWARD/Math.pow(2,e);const x0=x(e*HALVING),x1=x((e+1)*HALVING);d+=`${e?"L":"M"}${x0},${y(r)} L${x1},${y(r)} `;cum+=r*HALVING;supplyPts.push([x1,cum])}
   const sy=(v)=>T+(H-T-B)*(1-v/CAP);let s=`M${L},${sy(0)} `+supplyPts.map(p=>`L${p[0]},${sy(p[1])}`).join(" ");
@@ -798,7 +896,7 @@ async function boot(){
   const qs=new URLSearchParams(location.search);const hq=new URLSearchParams((location.hash.split("?")[1]||""));
   const pre=(hq.get("w")||qs.get("w")||"").trim();const embed=hq.get("embed")==="1"||qs.get("embed")==="1";
   if(embed){store.set("v3.intro","1");$("btnLegacy").hidden=true;document.body.classList.add("embed")}
-  if(!store.get("v3.intro")&&(location.hash||"#mine").split("?")[0]==="#mine")showIntro(true);route();setTimeout(loadArtPool,900);
+  if(!store.get("v3.intro")&&(location.hash||"#mine").split("?")[0]==="#mine")showIntro(true);route();setTimeout(loadArtPool,900);loadHalving();setInterval(halvTick,1000);setInterval(()=>{if(!document.hidden)loadHalving()},600000);
   $("sheetX").addEventListener("click",closeSheet);$("sheet").addEventListener("click",e=>{if(e.target===$("sheet"))closeSheet()});document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("sheet").hidden)closeSheet()});
   if(/^0x[a-fA-F0-9]{40}$/.test(pre)){setWallet(pre);toast("Viewing "+short(pre))}loadRound();loadStats();loadMega();loadDiff();loadFeed();loadColStats();
   const w=store.get("v3.wallet");if(!pre&&w&&/^0x[a-fA-F0-9]{40}$/.test(w))setWallet(w);
