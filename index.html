@@ -48,7 +48,15 @@ button{font:inherit;color:inherit}
 .tk.live .k::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--good);margin-right:6px;animation:pulse 1.6s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 .train{grid-column:1/-1;overflow:hidden;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0b0f14,#0d1218);padding:6px 0;display:grid;gap:6px}
-.train:empty{display:none}
+.lane-row{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;padding-left:14px}
+.lane-lbl{font:600 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim);white-space:nowrap;min-width:150px}
+.lane-lbl.live{color:var(--good)}.lane-lbl.live::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--good);margin-right:6px;vertical-align:1px;animation:pulse 1.4s infinite}
+.lane-lbl.idle{color:var(--warn)}
+.lane-vp{overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 28px,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,transparent,#000 28px,#000 calc(100% - 28px),transparent)}
+.lane img.on{border-color:rgba(88,196,122,.8);box-shadow:0 0 8px rgba(88,196,122,.45)}
+.lane img.idle{filter:grayscale(.7) brightness(.75)}
+.lane img.idle:hover{filter:none}
+@media (max-width:600px){.lane-lbl{min-width:0;max-width:92px;overflow:hidden;text-overflow:ellipsis;font-size:9px}}
 .lane{display:flex;gap:6px;width:max-content;animation:train 70s linear infinite}
 .lane.rev{animation-direction:reverse;animation-duration:90s}
 .train:hover .lane{animation-play-state:paused}
@@ -87,6 +95,27 @@ h3{font:700 13px var(--body);margin:0 0 8px;color:var(--muted);text-transform:up
 .cube .f{position:absolute;inset:0;width:96px;height:96px;object-fit:cover;object-position:center top;border-radius:10px;border:1px solid var(--line2);background:var(--raised);backface-visibility:hidden}
 .cube .f1{transform:translateZ(48px)}.cube .f2{transform:rotateY(90deg) translateZ(48px)}.cube .f3{transform:rotateY(180deg) translateZ(48px)}.cube .f4{transform:rotateY(-90deg) translateZ(48px)}.cube .f5{transform:rotateX(90deg) translateZ(48px)}.cube .f6{transform:rotateX(-90deg) translateZ(48px)}
 .cube-cap{font:600 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.cube{cursor:pointer}
+.cube-status{display:flex;gap:7px;align-items:center;font:600 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim);white-space:nowrap}
+.cube-status .lamp{width:9px;height:9px;border-radius:50%;background:var(--dim);flex:none}
+.cube-wrap.mining .cube-status{color:var(--good)}
+.cube-wrap.mining .lamp{background:var(--good);box-shadow:0 0 10px var(--good);animation:pulse 1.2s infinite}
+.cube-wrap.mining .cube{animation-duration:9s}
+.cube-wrap.mining .cube .f{border-color:rgba(88,196,122,.75);box-shadow:0 0 16px rgba(88,196,122,.35)}
+.cube-wrap.idle .cube-status{color:var(--warn)}
+.cube-wrap.idle .lamp{background:var(--warn)}
+.cube-wrap.idle .cube{animation-duration:40s}
+.cube-wrap.idle .cube .f{filter:grayscale(.85) brightness(.7)}
+.hero.mining{box-shadow:0 0 0 1px rgba(88,196,122,.35),0 0 44px rgba(88,196,122,.08)}
+.sheet{position:fixed;inset:0;z-index:65;background:rgba(6,9,12,.72);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px}
+.sheet-card{position:relative;background:var(--surface);border:1px solid var(--line2);border-radius:16px;padding:20px;max-width:520px;width:100%;max-height:calc(100vh - 32px);overflow:auto;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+.sheet-x{position:absolute;right:10px;top:10px}
+.sheet-head{display:grid;grid-template-columns:96px minmax(0,1fr);gap:14px;align-items:center;padding-right:28px}
+.sheet-head img{width:96px;height:96px;border-radius:12px;object-fit:cover;object-position:center top;background:var(--raised)}
+.sheet .eyebrow{font:600 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.sheet-t{font:700 18px var(--display);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheet-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+@media (max-width:600px){.sheet{align-items:flex-end;padding:0}.sheet-card{border-radius:16px 16px 0 0;padding-bottom:calc(20px + env(safe-area-inset-bottom,0px))}}
 @keyframes spin3d{0%{transform:rotateX(-18deg) rotateY(0)}100%{transform:rotateX(-18deg) rotateY(360deg)}}
 @keyframes snap{0%{filter:drop-shadow(0 0 0 transparent)}30%{filter:drop-shadow(0 0 18px #5ad1c9)}100%{filter:none}}
 @media (max-width:1200px){.hero{grid-template-columns:auto 1fr}.cube-wrap{grid-column:1/-1;flex-direction:row;justify-content:center}}
@@ -266,7 +295,10 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
     <div class="tk"><div class="k">Bonus today</div><div class="v ore" id="tkBonus">—</div></div>
   </div>
 
-  <div class="train" id="train" aria-hidden="true"><div class="lane" id="lane1"></div><div class="lane rev" id="lane2"></div></div>
+  <div class="train" id="train">
+    <div class="lane-row"><span class="lane-lbl" id="lbl1">Recent winners</span><div class="lane-vp"><div class="lane" id="lane1"></div></div></div>
+    <div class="lane-row"><span class="lane-lbl" id="lbl2">Winning collections</span><div class="lane-vp"><div class="lane rev" id="lane2"></div></div></div>
+  </div>
 
   <nav class="rail" id="rail">
     <div class="sec">Mine</div>
@@ -295,14 +327,18 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
           <div class="c"><div class="t" id="ringTime">--:--</div><div class="l">until block</div><div class="b" id="ringBlock">#—</div></div>
         </div>
         <div class="grid g3">
-          <div class="stat"><div class="k">Block reward</div><div class="v ore" id="mReward">— NFC</div><div class="s">100% to the winner, no skim</div></div>
+          <div class="stat"><div class="k">Block reward <span class="pill" id="mMineBadge" style="margin-left:6px">connect</span></div><div class="v ore" id="mReward">— NFC</div><div class="s">100% to the winner, no skim</div></div>
           <div class="stat"><div class="k">Miners in round</div><div class="v" id="mMiners">—</div><div class="s" id="mHash">— total hashrate</div></div>
           <div class="stat"><div class="k">Difficulty</div><div class="v" id="mDiff">—</div><div class="s" id="mDiffS">24h avg —</div></div>
           <div class="stat"><div class="k">Avg block time</div><div class="v" id="mAvg">—</div><div class="s">target 20:00</div></div>
           <div class="stat"><div class="k">Daily bonus</div><div class="v sig" id="mBonus">—</div><div class="s" id="mBonusS">—</div></div>
           <div class="stat"><div class="k">Your odds this block</div><div class="v" id="mOdds">—</div><div class="s" id="mOddsS">connect a wallet</div></div>
         </div>
-        <div class="cube-wrap" aria-hidden="true"><div class="cube" id="cube"><img class="f f1" alt=""><img class="f f2" alt=""><img class="f f3" alt=""><img class="f f4" alt=""><img class="f f5" alt=""><img class="f f6" alt=""></div><div class="cube-cap">recent winners</div></div>
+        <div class="cube-wrap" id="cubeWrap">
+          <div class="cube-status"><span class="lamp"></span><span id="cubeStatusT">Recent winners</span></div>
+          <div class="cube" id="cube" role="button" tabindex="0" aria-label="Open the NFT on the front face"><img class="f f1" alt=""><img class="f f2" alt=""><img class="f f3" alt=""><img class="f f4" alt=""><img class="f f5" alt=""><img class="f f6" alt=""></div>
+          <button class="btn sm" type="button" id="cubeCta" data-act="connect">Connect to load your NFTs</button>
+        </div>
       </div>
       <div class="section">
         <h2>Block election <span class="pill" id="thStatus">live</span></h2>
@@ -463,6 +499,10 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
 </div>
 <div class="toast" id="toast" hidden></div>
 
+<div class="sheet" id="sheet" hidden role="dialog" aria-modal="true" aria-label="NFT details">
+  <div class="sheet-card"><button class="btn sm ghost sheet-x" type="button" id="sheetX" aria-label="Close">✕</button><div id="sheetBody"></div></div>
+</div>
+
 <div class="dock" id="dock" hidden aria-label="Background music">
   <div class="dock-bar">
     <span class="dock-dot" id="dockDot"></span>
@@ -566,18 +606,67 @@ async function loadFeed(){try{const b=await get("/blocks?limit=8",15000);const e
 async function loadColStats(){try{const c=await get("/collection_stats",15000);const top=(c.collections||[]).slice(0,7);const max=Math.max(...top.map(x=>x.wins||0),1);
   $("colStats").innerHTML=top.map(x=>`<div style="margin-bottom:9px"><div style="display:flex;justify-content:space-between;font-size:13px"><b>${esc(x.name)}</b><span class="feed">${fmt(x.wins)} wins · ${fmt(x.win_rate,2)}%</span></div><div class="bar sig"><i style="width:${100*x.wins/max}%"></i></div></div>`).join("")}catch(e){$("colStats").innerHTML='<div class="empty">—</div>'}}
 const nftImg=(n)=>`https://images.pfpvault.com/${n.chain_id}/${(n.contract_address||"").toLowerCase()}/${n.token_id}.webp`;
-/* ---------- art pool + train ---------- */
+/* ---------- art pool, my NFTs, train, cube ----------
+   Train lanes and cube each have a job:
+   - not connected: recent winners + one tile per winning collection
+   - connected: "Mining now" (enrolled NFTs, lit) and "Idle · waiting to mine" (greyed); cube shows your NFTs and lights up when mining
+   Click any tile or the cube: NFT sheet with its status and its collection's win record. */
+const keyOf=(n)=>(n.contract_address||"").toLowerCase()+":"+n.token_id;
+const byHr=(a,b)=>(b.hashrate||0)-(a.hashrate||0);
+const IMG_FALLBACK="data:image/svg+xml;utf8,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" rx="10" fill="#182130"/><text x="48" y="56" text-anchor="middle" font-family="monospace" font-size="26" fill="#f0a04b">⛏</text></svg>');
 async function loadArtPool(){try{const b=await get("/blocks?limit=40",20000);const seen=new Set();const pool=[];
-  b.items.forEach(x=>(x.winner_nfts||[]).forEach(n=>{const k=(n.contract_address||"")+":"+n.token_id;if(seen.has(k))return;seen.add(k);pool.push({...n,winner:x.winner_wallet,block:x.block_no})}));
-  state.artPool=pool;buildTrain()}catch(e){}}
-function buildTrain(){const pool=state.artPool||[];if(pool.length<8||document.body.classList.contains("embed"))return;
-  const mk=(arr)=>arr.map(n=>`<img src="${nftImg(n)}" alt="" loading="lazy" title="${esc(n.name||"")} · ${esc(n.collection||"")} · block #${fmt(n.block)}" data-w="${esc(n.winner||"")}" onerror="this.remove()">`).join("");
-  const a=pool.slice(0,Math.min(60,pool.length)),b=[...pool].reverse().slice(0,Math.min(60,pool.length));
-  $("lane1").innerHTML=mk(a)+mk(a);$("lane2").innerHTML=mk(b)+mk(b);
-  const faces=$("cube").querySelectorAll(".f");let next=faces.length;const FALLBACK="data:image/svg+xml;utf8,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" rx="10" fill="#182130"/><text x="48" y="56" text-anchor="middle" font-family="monospace" font-size="26" fill="#f0a04b">⛏</text></svg>');
-  faces.forEach((f,i)=>{const n=pool[i];if(!n){f.src=FALLBACK;return}f.title=n.name||"";f.onerror=()=>{const m=pool[next++];if(m){f.title=m.name||"";f.src=nftImg(m)}else{f.onerror=null;f.src=FALLBACK}};f.src=nftImg(n)});
-  if(state.lastBlockNo&&state.cubeBlock&&state.lastBlockNo>state.cubeBlock){const c=$("cube");c.classList.remove("snap");void c.offsetWidth;c.classList.add("snap")}state.cubeBlock=state.lastBlockNo}
-$("train").addEventListener("click",e=>{const im=e.target.closest("img");if(!im||!im.dataset.w)return;state.blkWinner=im.dataset.w;state.blkPage=1;$("blkWinner").value=im.dataset.w;loaded.blocks=1;location.hash="#blocks";loadBlocks();toast("Blocks won by "+short(im.dataset.w))});
+  b.items.forEach(x=>(x.winner_nfts||[]).forEach(n=>{const k=keyOf(n);if(seen.has(k))return;seen.add(k);pool.push({...n,winner:x.winner_wallet,block:x.block_no})}));
+  state.artPool=pool;state.artPoolBlocks=b.items;paintArt()}catch(e){}}
+async function ensureMine(w){try{
+  const [v,s]=await Promise.all([state.vault&&state.vaultAddr===w?Promise.resolve(state.vault):get("/tokens/"+w+"?include_linked=true",45000),get("/subscription/"+w,20000).catch(()=>null)]);
+  if(state.wallet!==w)return;if(!state.vault){state.vault=v;state.vaultAddr=w}
+  const enrolled=new Set(((s&&s.active&&s.subscription&&s.subscription.nfts)||[]).map(keyOf));
+  state.mine={all:(v.nfts||[]).slice().sort(byHr),enrolled};paintArt()}catch(e){}}
+function tileHtml(n,cls){return `<img src="${nftImg(n)}" alt="" width="34" height="34" loading="lazy" decoding="async" fetchpriority="low" class="${cls}" data-k="${esc(keyOf(n))}" title="${esc(n.name||("#"+n.token_id))} · ${esc(n.collection||"")}${n.hashrate?" · ⚡ "+n.hashrate:""}" onerror="this.remove()">`}
+function fillLane(id,arr,cls){const a=arr.slice(0,24);if(!a.length){$(id).innerHTML="";return}let seq=a;while(seq.length<14)seq=seq.concat(a);const h=seq.map(n=>tileHtml(n,cls)).join("");$(id).innerHTML=h+h}
+function laneLbl(id,t,cls){$(id).textContent=t;$(id).className="lane-lbl "+(cls||"")}
+function paintArt(){if(document.body.classList.contains("embed"))return;const pool=state.artPool||[];const m=state.mine;const map=new Map();
+  const reg=(arr,ctx)=>arr.forEach(n=>{if(!map.has(keyOf(n)))map.set(keyOf(n),{n,ctx})});
+  const perCol=[];const seenCol=new Set();pool.forEach(n=>{if(!seenCol.has(n.collection)){seenCol.add(n.collection);perCol.push(n)}});
+  if(m&&m.all.length){const mining=m.all.filter(n=>m.enrolled.has(keyOf(n)));const idle=m.all.filter(n=>!m.enrolled.has(keyOf(n)));
+    const live=state.myStatus&&state.myStatus.participating&&mining.length;
+    if(live){laneLbl("lbl1","Mining now · "+mining.length,"live");fillLane("lane1",mining,"on");reg(mining,"mine")}
+    else{laneLbl("lbl1","Recent winners");fillLane("lane1",pool,"");reg(pool,"win")}
+    if(idle.length){laneLbl("lbl2",(live?"Idle · waiting · ":"Your idle NFTs · ")+idle.length,"idle");fillLane("lane2",idle,"idle");reg(idle,"idle")}
+    else{laneLbl("lbl2","All your NFTs are mining","live");fillLane("lane2",perCol.length>=6?perCol:pool,"");reg(pool,"win")}}
+  else{laneLbl("lbl1","Recent winners");fillLane("lane1",pool,"");laneLbl("lbl2","Winning collections");fillLane("lane2",perCol.length>=6?perCol:pool.slice().reverse(),"");reg(pool,"win")}
+  state.tileMap=map;paintCube();applyMiningState()}
+function paintCube(){const faces=$("cube").querySelectorAll(".f");const m=state.mine;let src,ctx;
+  if(m&&m.all.length){const mining=m.all.filter(n=>m.enrolled.has(keyOf(n)));const rest=m.all.filter(n=>!m.enrolled.has(keyOf(n)));const live=state.myStatus&&state.myStatus.participating;
+    src=(live?mining.concat(rest):rest.concat(mining)).slice(0,14);src.forEach(n=>{if(!state.tileMap.has(keyOf(n)))state.tileMap.set(keyOf(n),{n,ctx:m.enrolled.has(keyOf(n))?"mine":"idle"})})}
+  else src=(state.artPool||[]).slice(0,14);
+  let next=faces.length;faces.forEach((f,i)=>{const n=src[i];if(!n){f.onerror=null;f.removeAttribute("data-k");f.src=IMG_FALLBACK;return}f.title=n.name||"";f.dataset.k=keyOf(n);f.onerror=()=>{const x=src[next++];if(x){f.dataset.k=keyOf(x);f.title=x.name||"";f.src=nftImg(x)}else{f.onerror=null;f.src=IMG_FALLBACK}};f.src=nftImg(n)});
+  if(!m&&state.lastBlockNo&&state.cubeBlock&&state.lastBlockNo>state.cubeBlock){const c=$("cube");c.classList.remove("snap");void c.offsetWidth;c.classList.add("snap")}state.cubeBlock=state.lastBlockNo}
+function applyMiningState(){const w=state.wallet,my=state.myStatus,cw=$("cubeWrap"),hero=document.querySelector(".hero"),b=$("mMineBadge"),cta=$("cubeCta");
+  cw.classList.remove("mining","idle");hero.classList.remove("mining");
+  if(!w){$("cubeStatusT").textContent="Recent winners";cta.textContent="Connect to load your NFTs";cta.dataset.act="connect";cta.className="btn sm";b.textContent="connect";b.className="pill";return}
+  if(my&&my.participating){cw.classList.add("mining");hero.classList.add("mining");$("cubeStatusT").textContent="Mining now · HR "+fmt(my.hashrate);cta.textContent="Open my vault";cta.dataset.act="vault";cta.className="btn sm";b.textContent="⛏ mining";b.className="pill good"}
+  else{cw.classList.add("idle");const n=state.mine?state.mine.all.length:0;$("cubeStatusT").textContent=n?"Idle · "+n+" NFTs not mining":"Idle · not mining";cta.textContent="Mine now ↗";cta.dataset.act="mine";cta.className="btn sm primary";b.textContent="idle";b.className="pill warn"}}
+$("cubeCta").addEventListener("click",()=>{const a=$("cubeCta").dataset.act;if(a==="connect")connect();else if(a==="vault")location.hash="#vault";else window.open(V2_APP,"_blank","noopener")});
+function openFromEl(el){const k=el&&el.dataset.k;const t=k&&state.tileMap&&state.tileMap.get(k);if(t)openNft(t)}
+$("train").addEventListener("click",e=>openFromEl(e.target.closest("img")));
+$("cube").addEventListener("click",e=>openFromEl(e.target.closest(".f")||$("cube").querySelector(".f1")));
+$("cube").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openFromEl($("cube").querySelector(".f1"))}});
+async function colStatsAll(){if(state.colStatsAll)return state.colStatsAll;try{const c=await get("/collection_stats",15000);state.colStatsAll=c.collections||[]}catch(e){state.colStatsAll=[]}return state.colStatsAll}
+function closeSheet(){$("sheet").hidden=true}
+async function openNft(t){const n=t.n,ctx=t.ctx;const ca=(n.contract_address||"").toLowerCase();$("sheet").hidden=false;
+  const blocks=state.artPoolBlocks||[];const colRecent=blocks.filter(x=>(x.winner_nfts||[]).some(y=>(y.contract_address||"").toLowerCase()===ca));const selfWins=blocks.filter(x=>(x.winner_nfts||[]).some(y=>keyOf(y)===keyOf(n)));
+  const status=ctx==="mine"?'<span class="pill good">⛏ mining now</span>':ctx==="idle"?'<span class="pill warn">idle · waiting to mine</span>':`<span class="pill ore">winning team · block #${fmt(n.block)}</span>`;
+  const explorer=n.chain_id===1?`https://etherscan.io/address/${ca}`:n.chain_id===3344?`${EXPLORER}/address/${ca}`:"";
+  $("sheetBody").innerHTML=`<div class="sheet-head"><img src="${nftImg(n)}" alt="" onerror="this.src='${IMG_FALLBACK}'"><div style="min-width:0"><div class="eyebrow">${esc(chainName(n.chain_id))} · ${esc(n.collection||"")}</div><div class="sheet-t" title="${esc(n.name||"")}">${esc(n.name||("#"+n.token_id))}</div><div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">${status}<span class="pill">⚡ ${fmt(n.hashrate)} hashrate</span></div></div></div>
+    <div class="section" id="sheetCol"><div class="sk" style="height:120px">&nbsp;</div></div>
+    <div class="sheet-actions">${ctx==="idle"?`<a class="btn primary sm" href="${V2_APP}" target="_blank" rel="noopener">Mine it now ↗</a>`:""}${ctx==="win"&&n.winner?`<button class="btn sm" type="button" id="sheetWinner">Blocks won by ${short(n.winner)}</button>`:""}${ctx!=="win"?`<a class="btn sm" href="#vault" id="sheetVault">Open my vault</a>`:""}${explorer?`<a class="btn sm ghost" href="${explorer}" target="_blank" rel="noopener">Collection contract ↗</a>`:""}</div>`;
+  const sw=$("sheetWinner");if(sw)sw.addEventListener("click",()=>{closeSheet();state.blkWinner=n.winner;state.blkPage=1;$("blkWinner").value=n.winner;loaded.blocks=1;location.hash="#blocks";loadBlocks()});
+  const sv=$("sheetVault");if(sv)sv.addEventListener("click",closeSheet);
+  const cols=await colStatsAll();const rank=cols.findIndex(c=>(c.contract_address||"").toLowerCase()===ca);const c=cols[rank];
+  if($("sheet").hidden)return;
+  $("sheetCol").innerHTML=c?`<h3>${esc(c.name)} on the network</h3><div class="kv"><div>Blocks won, all time</div><div>${fmt(c.wins)}</div><div>Rank by blocks won</div><div>#${rank+1} of ${cols.length}</div><div>Times entered</div><div>${fmt(c.total_participations)}</div><div>Win rate per entry</div><div>${fmt(c.win_rate,2)}%</div><div>Avg hashrate per NFT</div><div>${fmt(c.avg_hashrate,1)}</div><div>In the last ${blocks.length} blocks</div><div>${colRecent.length} won</div>${selfWins.length?`<div>This NFT's recent wins</div><div>${selfWins.map(x=>"#"+fmt(x.block_no)).join(", ")}</div>`:""}</div>${colRecent.length?`<p class="hint">Latest: ${colRecent.slice(0,4).map(x=>"#"+fmt(x.block_no)+" → "+short(x.winner_wallet)).join(" · ")}</p>`:""}`
+    :`<p class="hint">No network record for this collection yet. It has not won a block since tracking began.</p>`}
 function theatre(items,isNew){const hop=$("thHopper");const nfts=[];items.forEach(x=>(x.winner_nfts||[]).slice(0,4).forEach(n=>nfts.push(n)));
   if(!hop.dataset.built||isNew){hop.innerHTML="";const pool=nfts.slice(0,24);pool.forEach((n,i)=>{const im=document.createElement("img");im.className="th-tile";im.src=nftImg(n);im.alt="";im.loading="lazy";im.style.left=(6+Math.random()*88)+"%";im.style.setProperty("--d",(7+Math.random()*6).toFixed(1)+"s");im.style.setProperty("--s",(-Math.random()*12).toFixed(1)+"s");im.style.setProperty("--x",((Math.random()-.5)*80).toFixed(0)+"px");im.style.setProperty("--r",((Math.random()-.5)*40).toFixed(0)+"deg");im.onerror=()=>im.remove();hop.appendChild(im)});hop.dataset.built="1"}
   const top=items[0];const first=(top?.winner_nfts||[])[0];
@@ -593,13 +682,15 @@ function updateOdds(){const r=state.round;const my=state.myStatus;if(!r||!my||!m
   const p=100*my.hashrate/Math.max(1,r.participants.total_hashrate);$("mOdds").textContent=p.toFixed(2)+"%";$("mOddsS").textContent="HR "+fmt(my.hashrate)+" of "+fmtHR(r.participants.total_hashrate)+" · ≈ "+(p*72/100).toFixed(2)+" blocks/day";
   const wins=p*72/100;const paid=["boosted","boosted_7d"].includes(my.mode||my.subscription?.mode);$("gdWins").textContent=wins.toFixed(2)+(paid?"":" (free tier, not eligible)");$("gdPc").textContent=paid?(wins*0.01).toFixed(4)+" PC":"0 PC until you boost"}
 async function loadMyStatus(w){try{const s=await get("/mining_status/"+w,20000);state.myStatus=s;const sub=s.subscription;
+  const changed=state.lastPart!==!!s.participating;state.lastPart=!!s.participating;if(changed&&state.mine)paintArt();else applyMiningState();
   $("myStatus").innerHTML=`<div class="kv"><div>Status</div><div>${s.participating?'<span class="pill good">mining</span>':'<span class="pill crit">idle</span>'}</div><div>Mode</div><div>${esc(s.mode||sub?.mode||"—")}</div><div>Hashrate</div><div>${fmt(s.hashrate)}</div><div>NFTs enrolled</div><div>${fmt(s.nfts_selected)}</div><div>Round</div><div>#${fmt(s.round_id)}</div><div>Boost expires</div><div>${sub?.time_remaining_seconds>1e9?"never (passive)":dur(sub?.time_remaining_seconds)}</div></div><div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><a class="btn primary sm" href="${V2_APP}" target="_blank" rel="noopener">Boost / enroll in v2 ↗</a><a class="btn sm" href="#vault">Open vault</a></div>`;
   updateOdds()}catch(e){$("myStatus").innerHTML='<div class="empty">Could not load status.</div>'}}
 
 /* ---------- wallet ---------- */
 function setWallet(w){state.wallet=w;state.vault=null;state.sel.clear();loaded.rewards=0;store.set("v3.wallet",w||"");
   $("wDot").hidden=!w;$("wLabel").textContent=w?"Connected":"Connect wallet";$("wAddr").textContent=w?short(w):"";$("vaultAddr").value=w||"";
-  if(w){loadMyStatus(w);const v=(location.hash||"#mine").slice(1);if(v==="vault")loadVault(w);if(v==="rewards"){loaded.rewards=1;loadRewards(w)}}else{$("myStatus").innerHTML='<div class="empty">Connect a wallet to see your round status, hashrate and odds.</div>';state.myStatus=null;updateOdds()}}
+  state.mine=null;state.lastPart=undefined;
+  if(w){loadMyStatus(w);ensureMine(w);const v=(location.hash||"#mine").slice(1);if(v==="vault")loadVault(w);if(v==="rewards"){loaded.rewards=1;loadRewards(w)}}else{$("myStatus").innerHTML='<div class="empty">Connect a wallet to see your round status, hashrate and odds.</div>';state.myStatus=null;updateOdds();paintArt()}}
 async function connect(){if(state.wallet){setWallet(null);toast("Disconnected");return}
   if(window.ethereum){try{const acc=await window.ethereum.request({method:"eth_requestAccounts"});if(acc&&acc[0]){setWallet(acc[0]);toast("Connected "+short(acc[0]));return}}catch(e){toast("Wallet request rejected")}}
   const a=prompt("No wallet extension found. Paste an address to view (read-only):");if(a&&/^0x[a-fA-F0-9]{40}$/.test(a.trim())){setWallet(a.trim());toast("Viewing "+short(a.trim()))}}
@@ -706,7 +797,8 @@ async function boot(){
   const qs=new URLSearchParams(location.search);const hq=new URLSearchParams((location.hash.split("?")[1]||""));
   const pre=(hq.get("w")||qs.get("w")||"").trim();const embed=hq.get("embed")==="1"||qs.get("embed")==="1";
   if(embed){store.set("v3.intro","1");$("btnLegacy").hidden=true;document.body.classList.add("embed")}
-  if(!store.get("v3.intro")&&(location.hash||"#mine").split("?")[0]==="#mine")showIntro(true);route();loadArtPool();
+  if(!store.get("v3.intro")&&(location.hash||"#mine").split("?")[0]==="#mine")showIntro(true);route();setTimeout(loadArtPool,900);
+  $("sheetX").addEventListener("click",closeSheet);$("sheet").addEventListener("click",e=>{if(e.target===$("sheet"))closeSheet()});document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("sheet").hidden)closeSheet()});
   if(/^0x[a-fA-F0-9]{40}$/.test(pre)){setWallet(pre);toast("Viewing "+short(pre))}loadRound();loadStats();loadMega();loadDiff();loadFeed();loadColStats();
   const w=store.get("v3.wallet");if(!pre&&w&&/^0x[a-fA-F0-9]{40}$/.test(w))setWallet(w);
   const vis=()=>!document.hidden;
