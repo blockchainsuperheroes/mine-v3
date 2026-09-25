@@ -614,6 +614,7 @@ const nftImg=(n)=>(n.image&&/^https?:\/\//.test(n.image))?n.image:`https://image
 const keyOf=(n)=>(n.contract_address||"").toLowerCase()+":"+n.token_id;
 const byHr=(a,b)=>(b.hashrate||0)-(a.hashrate||0);
 const IMG_FALLBACK="data:image/svg+xml;utf8,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" rx="10" fill="#182130"/><text x="48" y="56" text-anchor="middle" font-family="monospace" font-size="26" fill="#f0a04b">⛏</text></svg>');
+window.IMG_FALLBACK=IMG_FALLBACK;
 async function loadArtPool(){try{const b=await get("/blocks?limit=40",20000);const seen=new Set();const pool=[];
   b.items.forEach(x=>(x.winner_nfts||[]).forEach(n=>{const k=keyOf(n);if(seen.has(k))return;seen.add(k);pool.push({...n,winner:x.winner_wallet,block:x.block_no})}));
   state.artPool=pool;state.artPoolBlocks=b.items;paintArt()}catch(e){}}
