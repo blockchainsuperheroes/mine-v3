@@ -75,7 +75,7 @@ body.embed .pcc{display:none}
 .pcc{display:inline-flex;--pg-accent:#f0a04b;--pg-accent-text:#f0a04b;--pg-on-accent:#1a1206;--pg-surface:#121821;--pg-surface-raised:#182130;--pg-border:#24303f;--pg-border-strong:#2f3d4f;--pg-text:#e9eef5;--pg-text-muted:#8b98a8;--pg-font-body:Manrope,system-ui,sans-serif;--pg-font-display:Manrope,system-ui,sans-serif;--pg-radius:12px;--pg-radius-small:9px;font-size:13px}
 /* one connect button: while no wallet is loaded, the PC Connector pill is the connect entry point */
 body.pcc-on:not(.has-wallet) #btnWallet{display:none}
-@media (max-width:600px){#btnLegacy,#btnMusic{display:none}.topbar{gap:8px}}
+@media (max-width:600px){#btnLegacy{display:none}.topbar{gap:8px}}
 .rail{border-right:1px solid var(--line);padding:14px 10px;background:var(--surface);position:sticky;top:0;align-self:start;height:auto}
 .rail a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;color:var(--muted);text-decoration:none;font-weight:600;font-size:14px}
 .rail a svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -356,7 +356,6 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
       <button class="soon" type="button" data-net="eth"><span class="dot"></span>Ethereum · soon</button>
     </div>
     <div class="spacer"></div>
-    <div data-pc-connector class="pcc" id="pcConnector"></div>
     <button class="btn ghost sm" type="button" id="btnMusic" title="Background music" aria-pressed="false">♪ Music</button>
     <button class="btn ghost sm" type="button" id="btnLegacy" title="Open the current v2 app">v2 app ↗</button>
     <button class="wallet" type="button" id="btnWallet"><span class="ok" id="wDot" hidden></span><span id="wLabel">Connect wallet</span><span class="addr" id="wAddr"></span></button>
@@ -1068,6 +1067,5 @@ async function boot(){
 boot();
 })();
 </script>
-<script src="https://pentagon.games/connector/pc-connector.js" defer></script>
 </body>
 </html>
