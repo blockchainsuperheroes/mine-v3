@@ -49,14 +49,17 @@ button{font:inherit;color:inherit}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
 .train{grid-column:1/-1;overflow:hidden;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0b0f14,#0d1218);padding:6px 0;display:grid;gap:6px}
 .lane-row{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;padding-left:14px}
-.lane-lbl{font:600 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim);white-space:nowrap;min-width:150px}
-.lane-lbl.live{color:var(--good)}.lane-lbl.live::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--good);margin-right:6px;vertical-align:1px;animation:pulse 1.4s infinite}
+.lane-lbl{display:flex;flex-direction:column;gap:1px;min-width:200px;max-width:200px;color:var(--muted)}
+.lane-lbl b{font:700 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lane-lbl small{font-size:11px;line-height:1.25;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lane-lbl.live b{color:var(--good)}.lane-lbl.idle b{color:var(--warn)}
+.lane-lbl.live{color:var(--good)}.lane-lbl.live b::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--good);margin-right:6px;vertical-align:1px;animation:pulse 1.4s infinite}
 .lane-lbl.idle{color:var(--warn)}
 .lane-vp{overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 28px,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,transparent,#000 28px,#000 calc(100% - 28px),transparent)}
 .lane img.on{border-color:rgba(88,196,122,.8);box-shadow:0 0 8px rgba(88,196,122,.45)}
 .lane img.idle{filter:grayscale(.7) brightness(.75)}
 .lane img.idle:hover{filter:none}
-@media (max-width:600px){.lane-lbl{min-width:0;max-width:92px;overflow:hidden;text-overflow:ellipsis;font-size:9px}}
+@media (max-width:600px){.lane-lbl{min-width:0;max-width:104px}.lane-lbl b{font-size:9.5px;white-space:normal}.lane-lbl small{display:none}}
 .lane{display:flex;gap:6px;width:max-content;animation:train 70s linear infinite}
 .lane.rev{animation-direction:reverse;animation-duration:90s}
 .lane.still{animation:none}
@@ -364,8 +367,8 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
   </div>
 
   <div class="train" id="train">
-    <div class="lane-row"><span class="lane-lbl" id="lbl1">Recent winners</span><div class="lane-vp"><div class="lane" id="lane1"></div></div></div>
-    <div class="lane-row"><span class="lane-lbl" id="lbl2">Winning collections</span><div class="lane-vp"><div class="lane rev" id="lane2"></div></div></div>
+    <div class="lane-row"><span class="lane-lbl" id="lbl1"><b>Recent block winners</b><small>NFTs on the last winning teams · tap one</small></span><div class="lane-vp"><div class="lane" id="lane1"></div></div></div>
+    <div class="lane-row"><span class="lane-lbl" id="lbl2"><b>Winning collections</b><small>one NFT per collection that won lately</small></span><div class="lane-vp"><div class="lane rev" id="lane2"></div></div></div>
   </div>
 
   <nav class="rail" id="rail">
@@ -805,17 +808,17 @@ function tileHtml(n,cls){const keep=cls==="on"||cls==="idle";return `<img src="$
 function fillLane(id,arr,cls){const a=arr.slice(0,24);const el=$(id);if(!a.length){el.innerHTML="";el.classList.remove("still");return}
   if(a.length<12){el.classList.add("still");el.innerHTML=a.map(n=>tileHtml(n,cls)).join("");return}
   el.classList.remove("still");const h=a.map(n=>tileHtml(n,cls)).join("");el.innerHTML=h+h}
-function laneLbl(id,t,cls){$(id).textContent=t;$(id).className="lane-lbl "+(cls||"")}
+function laneLbl(id,t,cls,sub){$(id).innerHTML=`<b>${esc(t)}</b>${sub?`<small>${esc(sub)}</small>`:""}`;$(id).className="lane-lbl "+(cls||"");$(id).title=sub?t+": "+sub:t}
 function paintArt(){if(document.body.classList.contains("embed"))return;const pool=state.artPool||[];const m=state.mine;const map=new Map();
   const reg=(arr,ctx)=>arr.forEach(n=>{if(!map.has(keyOf(n)))map.set(keyOf(n),{n,ctx})});
   const perCol=[];const seenCol=new Set();pool.forEach(n=>{if(!seenCol.has(n.collection)){seenCol.add(n.collection);perCol.push(n)}});
   if(m&&m.all.length){const mining=m.all.filter(n=>m.enrolled.has(keyOf(n)));const idle=m.all.filter(n=>!m.enrolled.has(keyOf(n)));
     const live=state.myStatus&&state.myStatus.participating&&mining.length;
-    if(live){laneLbl("lbl1","Mining now · "+mining.length,"live");fillLane("lane1",mining,"on");reg(mining,"mine")}
-    else{laneLbl("lbl1","Recent winners");fillLane("lane1",pool,"");reg(pool,"win")}
-    if(idle.length){laneLbl("lbl2",(live?"Idle · waiting · ":"Your idle NFTs · ")+idle.length,"idle");fillLane("lane2",idle,"idle");reg(idle,"idle")}
-    else{laneLbl("lbl2","All your NFTs are mining","live");fillLane("lane2",perCol.length>=6?perCol:pool,"");reg(pool,"win")}}
-  else{laneLbl("lbl1","Recent winners");fillLane("lane1",pool,"");laneLbl("lbl2","Winning collections");fillLane("lane2",perCol.length>=6?perCol:pool.slice().reverse(),"");reg(pool,"win")}
+    if(live){laneLbl("lbl1","Your NFTs mining · "+mining.length,"live","in this block's election now");fillLane("lane1",mining,"on");reg(mining,"mine")}
+    else{laneLbl("lbl1","Recent block winners","","NFTs on the last winning teams · tap one");fillLane("lane1",pool,"");reg(pool,"win")}
+    if(idle.length){laneLbl("lbl2","Your idle NFTs · "+idle.length,"idle",live?"not in your team · tap to see":"not mining yet · tap Quick start");fillLane("lane2",idle,"idle");reg(idle,"idle")}
+    else{laneLbl("lbl2","All your NFTs are mining","live","every NFT you hold is in the team");fillLane("lane2",perCol.length>=6?perCol:pool,"");reg(pool,"win")}}
+  else{laneLbl("lbl1","Recent block winners","","NFTs on the last winning teams · tap one");fillLane("lane1",pool,"");laneLbl("lbl2","Winning collections","","one NFT per collection that won lately");fillLane("lane2",perCol.length>=6?perCol:pool.slice().reverse(),"");reg(pool,"win")}
   state.tileMap=map;paintCube();applyMiningState()}
 function paintCube(){const faces=$("cube").querySelectorAll(".f");const m=state.mine;let src,ctx;
   if(m&&m.all.length){const mining=m.all.filter(n=>m.enrolled.has(keyOf(n)));const rest=m.all.filter(n=>!m.enrolled.has(keyOf(n)));const live=state.myStatus&&state.myStatus.participating;
