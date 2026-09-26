@@ -769,7 +769,7 @@ async function ensureMine(w){try{
   const [v,s]=await Promise.all([state.vault&&state.vaultAddr===w?Promise.resolve(state.vault):get("/tokens/"+w+"?include_linked=true",45000),get("/subscription/"+w,20000).catch(()=>null)]);
   if(state.wallet!==w)return;if(!state.vault){state.vault=v;state.vaultAddr=w}
   const enrolled=new Set(((s&&s.active&&s.subscription&&s.subscription.nfts)||[]).map(keyOf));
-  state.mine={all:(v.nfts||[]).slice().sort(byHr),enrolled};paintArt()}catch(e){}}
+  state.mineErr=false;state.mine={all:(v.nfts||[]).slice().sort(byHr),enrolled};paintArt()}catch(e){if(state.wallet===w){state.mineErr=true;applyMiningState()}}}
 function tileHtml(n,cls){const keep=cls==="on"||cls==="idle";return `<img src="${nftImg(n)}" alt="" width="34" height="34" decoding="async" class="${cls}" data-k="${esc(keyOf(n))}" title="${esc(n.name||("#"+n.token_id))} · ${esc(n.collection||"")}${n.hashrate?" · ⚡ "+n.hashrate:""}" onerror="${keep?"this.onerror=null;this.src=IMG_FALLBACK":"this.remove()"}">`}
 function fillLane(id,arr,cls){const a=arr.slice(0,24);if(!a.length){$(id).innerHTML="";return}let seq=a;while(seq.length<14)seq=seq.concat(a);const h=seq.map(n=>tileHtml(n,cls)).join("");$(id).innerHTML=h+h}
 function laneLbl(id,t,cls){$(id).textContent=t;$(id).className="lane-lbl "+(cls||"")}
@@ -787,13 +787,14 @@ function paintArt(){if(document.body.classList.contains("embed"))return;const po
 function paintCube(){const faces=$("cube").querySelectorAll(".f");const m=state.mine;let src,ctx;
   if(m&&m.all.length){const mining=m.all.filter(n=>m.enrolled.has(keyOf(n)));const rest=m.all.filter(n=>!m.enrolled.has(keyOf(n)));const live=state.myStatus&&state.myStatus.participating;
     src=(live?mining.concat(rest):rest.concat(mining)).slice(0,14);src.forEach(n=>{if(!state.tileMap.has(keyOf(n)))state.tileMap.set(keyOf(n),{n,ctx:m.enrolled.has(keyOf(n))?"mine":"idle"})})}
-  else src=state.wallet?(state.artPool||[]).slice(0,14):[];
+  else src=[];
   let next=faces.length;faces.forEach((f,i)=>{const n=src[i];if(!n){f.onerror=null;f.removeAttribute("data-k");f.src=IMG_FALLBACK;return}f.title=n.name||"";f.dataset.k=keyOf(n);f.onerror=()=>{const x=src[next++];if(x){f.dataset.k=keyOf(x);f.title=x.name||"";f.src=nftImg(x)}else{f.onerror=null;f.src=IMG_FALLBACK}};f.src=nftImg(n)});
   if(!m&&state.lastBlockNo&&state.cubeBlock&&state.lastBlockNo>state.cubeBlock){const c=$("cube");c.classList.remove("snap");void c.offsetWidth;c.classList.add("snap")}state.cubeBlock=state.lastBlockNo}
 function applyMiningState(){const w=state.wallet,my=state.myStatus,cw=$("cubeWrap"),hero=document.querySelector(".hero"),b=$("mMineBadge"),cta=$("cubeCta");
   cw.classList.remove("mining","idle","empty");hero.classList.remove("mining");
   if(!w){cw.classList.add("empty");$("cubeStatusT").textContent="Empty · connect to mine";cta.textContent="Connect wallet";cta.dataset.act="connect";cta.className="btn sm primary";b.textContent="connect";b.className="pill";return}
   if(my&&my.participating){cw.classList.add("mining");hero.classList.add("mining");$("cubeStatusT").textContent="Mining now · HR "+fmt(my.hashrate);cta.textContent="Open my vault";cta.dataset.act="vault";cta.className="btn sm";b.textContent="⛏ mining";b.className="pill good"}
+  else if(!state.mine){cw.classList.add("idle");$("cubeStatusT").textContent=state.mineErr?"Could not load your NFTs":"Loading your NFTs…";cta.textContent=state.mineErr?"Retry":"Open my vault";cta.dataset.act=state.mineErr?"retry":"vault";cta.className="btn sm";b.textContent=my?"idle":"…";b.className="pill "+(my?"warn":"")}
   else{cw.classList.add("idle");const t=teamPick();$("cubeStatusT").textContent=t.team.length?"Ready · "+t.team.length+" NFTs · HR "+fmt(t.hr):"No mineable NFTs yet";cta.textContent=t.team.length?"Quick start":"Browse collections";cta.dataset.act=t.team.length?"quick":"eth";cta.className="btn sm primary";b.textContent="idle";b.className="pill warn"}}
 /* best team of 9 by hashrate, plus the tail of other qualifying NFTs */
 function teamPick(){const all=(state.mine&&state.mine.all)||[];const q=all.filter(n=>(n.hashrate||0)>0).sort(byHr);return{team:q.slice(0,9),tail:q.slice(9),hr:q.slice(0,9).reduce((a,n)=>a+(n.hashrate||0),0)}}
@@ -807,7 +808,7 @@ function quickStart(){const t=teamPick();$("sheet").hidden=false;
     <div class="sheet-actions"><a class="btn primary sm" href="${V2_APP}" target="_blank" rel="noopener">Start mining with this team ↗</a><a class="btn sm" href="#vault" id="qsVault">Choose a different team</a></div>
     <p class="hint">Mining starts in the v2 app for now. One-click start here arrives once enrolment requires your wallet signature.</p>`;
   const v=$("qsVault");if(v)v.addEventListener("click",closeSheet)}
-$("cubeCta").addEventListener("click",()=>{const a=$("cubeCta").dataset.act;if(a==="connect")connect();else if(a==="vault")location.hash="#vault";else if(a==="quick")quickStart();else if(a==="eth")location.hash="#ethereum";else window.open(V2_APP,"_blank","noopener")});
+$("cubeCta").addEventListener("click",()=>{const a=$("cubeCta").dataset.act;if(a==="connect")connect();else if(a==="vault")location.hash="#vault";else if(a==="quick")quickStart();else if(a==="retry"){state.mineErr=false;applyMiningState();ensureMine(state.wallet)}else if(a==="eth")location.hash="#ethereum";else window.open(V2_APP,"_blank","noopener")});
 function openFromEl(el){const k=el&&el.dataset.k;const t=k&&state.tileMap&&state.tileMap.get(k);if(t)openNft(t)}
 $("train").addEventListener("click",e=>openFromEl(e.target.closest("img")));
 $("cube").addEventListener("click",e=>{const a=$("cubeCta").dataset.act;if(a==="connect"){connect();return}if(a==="quick"){quickStart();return}openFromEl(e.target.closest(".f")||$("cube").querySelector(".f1"))});
