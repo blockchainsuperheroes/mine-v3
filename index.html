@@ -72,8 +72,10 @@ button{font:inherit;color:inherit}
 @media (prefers-reduced-motion:reduce){.lane{animation:none}}
 body.embed .train{display:none}
 body.embed .pcc{display:none}
-.pcc{display:inline-flex;--pg-accent:#f0a04b;--pg-accent-text:#f0a04b;--pg-on-accent:#1a1206;--pg-surface:#121821;--pg-surface-raised:#182130;--pg-border:#24303f;--pg-border-strong:#2f3d4f;--pg-text:#e9eef5;--pg-text-muted:#8b98a8}
-@media (max-width:600px){#btnLegacy{display:none}}
+.pcc{display:inline-flex;--pg-accent:#f0a04b;--pg-accent-text:#f0a04b;--pg-on-accent:#1a1206;--pg-surface:#121821;--pg-surface-raised:#182130;--pg-border:#24303f;--pg-border-strong:#2f3d4f;--pg-text:#e9eef5;--pg-text-muted:#8b98a8;--pg-font-body:Manrope,system-ui,sans-serif;--pg-font-display:Manrope,system-ui,sans-serif;--pg-radius:12px;--pg-radius-small:9px;font-size:13px}
+/* one connect button: while no wallet is loaded, the PC Connector pill is the connect entry point */
+body.pcc-on:not(.has-wallet) #btnWallet{display:none}
+@media (max-width:600px){#btnLegacy,#btnMusic{display:none}.topbar{gap:8px}}
 .rail{border-right:1px solid var(--line);padding:14px 10px;background:var(--surface);position:sticky;top:0;align-self:start;height:auto}
 .rail a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;color:var(--muted);text-decoration:none;font-weight:600;font-size:14px}
 .rail a svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
@@ -944,7 +946,7 @@ async function loadMyStatus(w){try{const s=await get("/mining_status/"+w,20000);
   updateOdds()}catch(e){$("myStatus").innerHTML='<div class="empty">Could not load status.</div>'}}
 
 /* ---------- wallet ---------- */
-function setWallet(w){state.wallet=w;state.vault=null;state.sel.clear();loaded.rewards=0;store.set("v3.wallet",w||"");
+function setWallet(w){state.wallet=w;document.body.classList.toggle("has-wallet",!!w);state.vault=null;state.sel.clear();loaded.rewards=0;store.set("v3.wallet",w||"");
   $("wDot").hidden=!w;$("wLabel").textContent=w?"Connected":"Connect wallet";$("wAddr").textContent=w?short(w):"";$("vaultAddr").value=w||"";
   state.mine=null;state.lastPart=undefined;
   if(w){loadMyStatus(w);ensureMine(w);const v=(location.hash||"#mine").slice(1);if(v==="vault")loadVault(w);if(v==="rewards"){loaded.rewards=1;loadRewards(w)}}else{$("myStatus").innerHTML='<div class="empty">Connect a wallet to see your round status, hashrate and share of blocks.</div>';state.myStatus=null;updateOdds();paintArt()}}
@@ -952,7 +954,7 @@ async function connect(){if(state.wallet){setWallet(null);toast("Disconnected");
   if(window.ethereum){try{const acc=await window.ethereum.request({method:"eth_requestAccounts"});if(acc&&acc[0]){setWallet(acc[0]);toast("Connected "+short(acc[0]));return}}catch(e){toast("Wallet request rejected")}}
   const a=prompt("No wallet extension found. Paste an address to view (read-only):");if(a&&/^0x[a-fA-F0-9]{40}$/.test(a.trim())){setWallet(a.trim());toast("Viewing "+short(a.trim()))}}
 $("btnWallet").addEventListener("click",connect);
-(function hookPCC(tries){if(window.PCConnector&&window.PCConnector.onChange){window.PCConnector.onChange(function(s){var a=s&&s.account;if(a&&/^0x[a-fA-F0-9]{40}$/.test(a)&&(!state.wallet||state.wallet.toLowerCase()!==a.toLowerCase())&&!document.body.classList.contains("embed")){if(!state.wallet)setWallet(a)}})}else if(tries<40)setTimeout(function(){hookPCC(tries+1)},250)})(0);
+(function hookPCC(tries){if(window.PCConnector&&window.PCConnector.onChange){document.body.classList.add("pcc-on");window.PCConnector.onChange(function(s){var a=s&&s.account;if(a&&/^0x[a-fA-F0-9]{40}$/.test(a)&&(!state.wallet||state.wallet.toLowerCase()!==a.toLowerCase())&&!document.body.classList.contains("embed")){if(!state.wallet)setWallet(a)}})}else if(tries<40)setTimeout(function(){hookPCC(tries+1)},250)})(0);
 $("btnLegacy").addEventListener("click",()=>window.open(V2_APP,"_blank","noopener"));
 $("btnBoost").addEventListener("click",()=>{const v=state.vault;const sel=v?v.nfts.filter(n=>state.sel.has(n.id)):[];if(!state.wallet){connect();return}if(!state.mine&&v)state.mine={all:v.nfts.slice().sort(byHr),enrolled:new Set()};quickStart(sel.sort(byHr).slice(0,9))});
 document.querySelectorAll(".net button").forEach(b=>b.addEventListener("click",()=>{if(b.dataset.net==="eth"){location.hash="#ethereum";toast("Ethereum mining is in design. Read the plan.")}}));
