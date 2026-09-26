@@ -102,10 +102,13 @@ h3{font:700 13px var(--body);margin:0 0 8px;color:var(--muted);text-transform:up
 .cube-wrap.mining .lamp{background:var(--good);box-shadow:0 0 10px var(--good);animation:pulse 1.2s infinite}
 .cube-wrap.mining .cube{animation-duration:9s}
 .cube-wrap.mining .cube .f{border-color:rgba(88,196,122,.75);box-shadow:0 0 16px rgba(88,196,122,.35)}
-.cube-wrap.idle .cube-status{color:var(--warn)}
+.cube-wrap.idle .cube-status{color:var(--ore)}
 .cube-wrap.idle .lamp{background:var(--warn)}
 .cube-wrap.idle .cube{animation-duration:40s}
-.cube-wrap.idle .cube .f{filter:grayscale(.85) brightness(.7)}
+.cube-wrap.idle .cube .f{filter:none}
+.cube-wrap.empty .cube{animation-duration:30s}
+.cube-wrap.empty .cube .f{background:repeating-linear-gradient(45deg,var(--raised),var(--raised) 6px,var(--surface) 6px,var(--surface) 12px);border-style:dashed;opacity:.8}
+.cube-wrap.empty .cube-status{color:var(--muted)}
 .hero.mining{box-shadow:0 0 0 1px rgba(88,196,122,.35),0 0 44px rgba(88,196,122,.08)}
 .mip{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer}
 .mip:hover{border-color:var(--line2)}
@@ -683,7 +686,7 @@ const nftImg=(n)=>(n.image&&/^https?:\/\//.test(n.image))?n.image:`https://image
 /* ---------- MIPs ---------- */
 const MIPS=[
  ["0000","MIP process and governance","Draft","How rule changes are proposed and decided. Phase 1: Mining Council decides, NFC holders signal by snapshot vote (NFC held 30+ days). Phase 2: binding on-chain votes with a timelock for contract parameters. Emission is immutable and out of scope."],
- ["0001","Remove the 9-NFT cap","Draft · approved in principle","Mine with every NFT you hold. The cap only stopped honest holders, because anyone inclined could spread NFTs across wallets. Replaced by diminishing returns per collection family: NFTs 1-10 count fully, 11-25 at half, 26-50 at a quarter, beyond 50 nothing."],
+ ["0001","Team of 9 plus a tail boost","Draft","Keep the team of 9: picking the right team for each cycle, including the bonus collection, is the game and a reason to collect new NFTs. Every other qualifying NFT you hold becomes your tail and adds 2% to your team hashrate, up to +50% at 25 tail NFTs. The tail rewards consolidation, so splitting NFTs across wallets loses it."],
  ["0002","3.0 hashrate model","Draft","Hashrate = cube root of collection value times rarity, then rights tier, companion factor, holder distribution and hold time. Value from real listings and filtered sales, never top bids or last sale. Rarity from traits. Up to 1.5x for holding a year. A diversity bonus up to 1.5x for holding six OG blue-chip families. Project wallets excluded. No collection above 15% of network hashrate."],
  ["0003","Winner's Green Day","Draft","Green Day becomes a reward for winning: a block won with a paid boost also earns a fixed PC payout on Ethereum, settled daily at 00:00 UTC. Replaces the completed trial of daily partial fee refunds."],
  ["0004","MEGA/OMEGA weighted by raw hashrate","Draft","MEGA and OMEGA recipients are drawn by raw hashrate only. The small-miner and streak multipliers stay for regular blocks, where they were designed, and no longer compound into the pool payouts."],
@@ -784,18 +787,30 @@ function paintArt(){if(document.body.classList.contains("embed"))return;const po
 function paintCube(){const faces=$("cube").querySelectorAll(".f");const m=state.mine;let src,ctx;
   if(m&&m.all.length){const mining=m.all.filter(n=>m.enrolled.has(keyOf(n)));const rest=m.all.filter(n=>!m.enrolled.has(keyOf(n)));const live=state.myStatus&&state.myStatus.participating;
     src=(live?mining.concat(rest):rest.concat(mining)).slice(0,14);src.forEach(n=>{if(!state.tileMap.has(keyOf(n)))state.tileMap.set(keyOf(n),{n,ctx:m.enrolled.has(keyOf(n))?"mine":"idle"})})}
-  else src=(state.artPool||[]).slice(0,14);
+  else src=state.wallet?(state.artPool||[]).slice(0,14):[];
   let next=faces.length;faces.forEach((f,i)=>{const n=src[i];if(!n){f.onerror=null;f.removeAttribute("data-k");f.src=IMG_FALLBACK;return}f.title=n.name||"";f.dataset.k=keyOf(n);f.onerror=()=>{const x=src[next++];if(x){f.dataset.k=keyOf(x);f.title=x.name||"";f.src=nftImg(x)}else{f.onerror=null;f.src=IMG_FALLBACK}};f.src=nftImg(n)});
   if(!m&&state.lastBlockNo&&state.cubeBlock&&state.lastBlockNo>state.cubeBlock){const c=$("cube");c.classList.remove("snap");void c.offsetWidth;c.classList.add("snap")}state.cubeBlock=state.lastBlockNo}
 function applyMiningState(){const w=state.wallet,my=state.myStatus,cw=$("cubeWrap"),hero=document.querySelector(".hero"),b=$("mMineBadge"),cta=$("cubeCta");
-  cw.classList.remove("mining","idle");hero.classList.remove("mining");
-  if(!w){$("cubeStatusT").textContent="Recent winners";cta.textContent="Connect to load your NFTs";cta.dataset.act="connect";cta.className="btn sm";b.textContent="connect";b.className="pill";return}
+  cw.classList.remove("mining","idle","empty");hero.classList.remove("mining");
+  if(!w){cw.classList.add("empty");$("cubeStatusT").textContent="Empty · connect to mine";cta.textContent="Connect wallet";cta.dataset.act="connect";cta.className="btn sm primary";b.textContent="connect";b.className="pill";return}
   if(my&&my.participating){cw.classList.add("mining");hero.classList.add("mining");$("cubeStatusT").textContent="Mining now · HR "+fmt(my.hashrate);cta.textContent="Open my vault";cta.dataset.act="vault";cta.className="btn sm";b.textContent="⛏ mining";b.className="pill good"}
-  else{cw.classList.add("idle");const n=state.mine?state.mine.all.length:0;$("cubeStatusT").textContent=n?"Idle · "+n+" NFTs not mining":"Idle · not mining";cta.textContent="Mine now ↗";cta.dataset.act="mine";cta.className="btn sm primary";b.textContent="idle";b.className="pill warn"}}
-$("cubeCta").addEventListener("click",()=>{const a=$("cubeCta").dataset.act;if(a==="connect")connect();else if(a==="vault")location.hash="#vault";else window.open(V2_APP,"_blank","noopener")});
+  else{cw.classList.add("idle");const t=teamPick();$("cubeStatusT").textContent=t.team.length?"Ready · "+t.team.length+" NFTs · HR "+fmt(t.hr):"No mineable NFTs yet";cta.textContent=t.team.length?"Quick start":"Browse collections";cta.dataset.act=t.team.length?"quick":"eth";cta.className="btn sm primary";b.textContent="idle";b.className="pill warn"}}
+/* best team of 9 by hashrate, plus the tail of other qualifying NFTs */
+function teamPick(){const all=(state.mine&&state.mine.all)||[];const q=all.filter(n=>(n.hashrate||0)>0).sort(byHr);return{team:q.slice(0,9),tail:q.slice(9),hr:q.slice(0,9).reduce((a,n)=>a+(n.hashrate||0),0)}}
+function quickStart(){const t=teamPick();$("sheet").hidden=false;
+  const tiles=t.team.map(n=>`<div class="team-nft"><img src="${nftImg(n)}" alt="" onerror="this.src=IMG_FALLBACK"><div><b>${esc(n.name||("#"+n.token_id))}</b><small>${esc(n.collection||"")} · ⚡ ${fmt(n.hashrate)}</small></div></div>`).join("");
+  const net=state.round?.participants?.total_hashrate||0;const share=net?100*t.hr/(net+t.hr):0;
+  $("sheetBody").innerHTML=`<div class="eyebrow">Quick start</div><div class="sheet-t" style="white-space:normal">Your best team of ${t.team.length}</div>
+    <p class="hint" style="margin-top:6px">Picked by hashrate from everything in your vault. ${t.tail.length?`Your other ${t.tail.length} qualifying NFTs are your tail.`:""}</p>
+    <div class="team" style="margin:12px 0">${tiles}</div>
+    <div class="kv"><div>Team hashrate</div><div>${fmt(t.hr)}</div><div>Share of network</div><div>${share.toFixed(2)}%</div><div>Expected blocks per day</div><div>${(share*72/100).toFixed(2)}</div></div>
+    <div class="sheet-actions"><a class="btn primary sm" href="${V2_APP}" target="_blank" rel="noopener">Start mining with this team ↗</a><a class="btn sm" href="#vault" id="qsVault">Choose a different team</a></div>
+    <p class="hint">Mining starts in the v2 app for now. One-click start here arrives once enrolment requires your wallet signature.</p>`;
+  const v=$("qsVault");if(v)v.addEventListener("click",closeSheet)}
+$("cubeCta").addEventListener("click",()=>{const a=$("cubeCta").dataset.act;if(a==="connect")connect();else if(a==="vault")location.hash="#vault";else if(a==="quick")quickStart();else if(a==="eth")location.hash="#ethereum";else window.open(V2_APP,"_blank","noopener")});
 function openFromEl(el){const k=el&&el.dataset.k;const t=k&&state.tileMap&&state.tileMap.get(k);if(t)openNft(t)}
 $("train").addEventListener("click",e=>openFromEl(e.target.closest("img")));
-$("cube").addEventListener("click",e=>openFromEl(e.target.closest(".f")||$("cube").querySelector(".f1")));
+$("cube").addEventListener("click",e=>{const a=$("cubeCta").dataset.act;if(a==="connect"){connect();return}if(a==="quick"){quickStart();return}openFromEl(e.target.closest(".f")||$("cube").querySelector(".f1"))});
 $("cube").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openFromEl($("cube").querySelector(".f1"))}});
 async function colStatsAll(){if(state.colStatsAll)return state.colStatsAll;try{const c=await get("/collection_stats",15000);state.colStatsAll=c.collections||[]}catch(e){state.colStatsAll=[]}return state.colStatsAll}
 function closeSheet(){$("sheet").hidden=true}
