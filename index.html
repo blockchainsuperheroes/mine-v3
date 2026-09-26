@@ -110,6 +110,9 @@ h3{font:700 13px var(--body);margin:0 0 8px;color:var(--muted);text-transform:up
 .cube-wrap.empty .cube .f{background:repeating-linear-gradient(45deg,var(--raised),var(--raised) 6px,var(--surface) 6px,var(--surface) 12px);border-style:dashed;opacity:.8}
 .cube-wrap.empty .cube-status{color:var(--muted)}
 .hero.mining{box-shadow:0 0 0 1px rgba(88,196,122,.35),0 0 44px rgba(88,196,122,.08)}
+.story p{color:var(--muted);margin:0;max-width:78ch}
+.beliefs{margin:0;padding-left:18px;display:grid;gap:6px;color:var(--muted);font-size:14px;max-width:80ch}
+.beliefs b{color:var(--ink)}
 .mip{display:grid;grid-template-columns:64px minmax(0,1fr);gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--surface);cursor:pointer}
 .mip:hover{border-color:var(--line2)}
 .mip .no{font:700 13px var(--mono);color:var(--ore)}
@@ -530,11 +533,26 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
       <h1>NFT Mining on Ethereum</h1>
       <p class="sub">The new home for every NFT on Ethereum. Fair distribution of a new NFC token to real holders, with the collections that give holders creative rights mining hardest.</p>
       <div class="vision">
-        <div class="steps">
+        <div class="card raised story">
+          <h3>Where we come from</h3>
+          <p>NFT Mining began in 2019 on Ethereum and several other chains, with one idea: the NFTs people already hold can do work. We then consolidated onto Pentagon Chain to build the whole system properly, with 20-minute blocks, verifiable draws, sponsor pools and NFC, a token with Bitcoin's rules. Ethereum NFTs have mined on it from the start. NFTMining 3.0 brings NFC home to Ethereum, while Pentagon Chain keeps mining alongside it.</p>
+          <h3 style="margin-top:14px">What we believe</h3>
+          <ul class="beliefs">
+            <li><b>Holding is contribution.</b> Long-term holders keep collections alive and deserve recognition.</li>
+            <li><b>Fair launch, fixed rules.</b> No presale, no team allocation, Bitcoin's schedule, locked in the contract.</li>
+            <li><b>Value, not hardware.</b> Cube-root hashrate means nobody can buy the network.</li>
+            <li><b>Creators' rights matter.</b> Collections that give holders their IP mine hardest.</li>
+            <li><b>Nothing leaves your wallet.</b> Non-custodial; cold wallets mine by delegation.</li>
+            <li><b>Provably fair, no house edge.</b> Every block is verifiable; new NFC is minted, not taken from anyone.</li>
+            <li><b>Free to join.</b> There is always a free way to mine.</li>
+            <li><b>The community sets the rules.</b> Changes go through public Mining Improvement Proposals.</li>
+          </ul>
+        </div>
+        <div class="steps" style="margin-top:16px">
           <div class="step"><div class="i">01</div><div class="t">Your NFTs are the miners</div><div class="d">Enroll from any wallet, including cold wallets through delegate.xyz or warm.xyz. No staking, no lock-up, nothing leaves your wallet.</div></div>
           <div class="step"><div class="i">02</div><div class="t">Hashrate from the market</div><div class="d">Each collection's hashrate is the cube root of its reference bid, set 20% under the best external bid. Bigger, more liquid collections mine more, but never proportionally.</div></div>
           <div class="step"><div class="i">03</div><div class="t">Rights-weighted</div><div class="d">Collections that grant holders CC0 or commercial rights get the full multiplier. Personal-use and restricted collections still mine, at a lower tier.</div></div>
-          <div class="step"><div class="i">04</div><div class="t">Bitcoin schedule</div><div class="d">50 NFC per 20-minute block, halving every 210,000 blocks, 21M cap. Genesis airdrop to today's Pentagon Chain NFC holders. No team allocation.</div></div>
+          <div class="step"><div class="i">04</div><div class="t">Bitcoin schedule</div><div class="d">Starts at block 1: 50 NFC per 20-minute block, halving every 210,000 blocks, 21M cap. No presale, no team allocation.</div></div>
           <div class="step"><div class="i">05</div><div class="t">Dual mining</div><div class="d">Pentagon Chain keeps running. ETH miners also earn PC for gas, so one wallet can mine both networks.</div></div>
         </div>
         <div class="section"><h2>Hashrate tiers</h2>
@@ -691,7 +709,7 @@ const MIPS=[
  ["0003","Winner's Green Day","Draft","Green Day becomes a reward for winning: a block won with a paid boost also earns a fixed PC payout on Ethereum, settled daily at 00:00 UTC. Replaces the completed trial of daily partial fee refunds."],
  ["0004","MEGA/OMEGA weighted by raw hashrate","Draft","MEGA and OMEGA recipients are drawn by raw hashrate only. The small-miner and streak multipliers stay for regular blocks, where they were designed, and no longer compound into the pool payouts."],
  ["0005","The NFC contract is the halving clock","Final (interface)","The halving happens inside the NFC token contract at every 210,000th token block, automatically. Simulated against the deployed contract on 25 Sep 2026: all checks passed. Every display reads the contract, never the explorer's block number."]];
-const HIST=[["2017","NFT Mining v1 begins with the ChainGuardians community"],["May 2026","v2 launches on Pentagon Chain with the NFC token: 21M cap, 50 per block, halving every 210,000"],["Jun 2026","v1 retired; v2 is the only mining system"],["May–Sep 2026","Green Day trial of daily fee refunds, completed 23 Sep"],["25 Aug 2026","Block cadence standardised to 20 minutes"],["Sep 2026","VIP re-validated at every block election"],["24 Sep 2026","V3 interface; NFTMining 3.0 for Ethereum enters design"]];
+const HIST=[["2019","NFT Mining begins on Ethereum and multichain: the NFTs people already hold start earning"],["Consolidation","Engineering consolidates onto Pentagon Chain to build the full system: 20-minute blocks, verifiable draws, sponsor pools"],["May 2026","v2 launches on Pentagon Chain with the NFC token: 21M cap, 50 per block, halving every 210,000"],["Jun 2026","v1 retired; v2 is the only mining system"],["May–Sep 2026","Green Day trial of daily fee refunds, completed 23 Sep"],["25 Aug 2026","Block cadence standardised to 20 minutes"],["Sep 2026","VIP re-validated at every block election"],["24 Sep 2026","V3 interface; NFTMining 3.0 for Ethereum enters design"],["Next","Back to Ethereum: a new NFC from block 1 at 50 per block, mined by blue-chip NFTs, alongside Pentagon Chain"]];
 $("mipList").innerHTML=MIPS.map(m=>`<div class="mip" tabindex="0" role="button"><div class="no">MIP-${m[0]}</div><div><div class="t">${esc(m[1])} <span class="pill ${/Final/.test(m[2])?"good":/approved/.test(m[2])?"sig":""}">${esc(m[2])}</span></div><div class="s">${esc(m[3])}</div></div></div>`).join("");
 $("mipList").addEventListener("click",e=>{const m=e.target.closest(".mip");if(m)m.classList.toggle("open")});
 $("mipList").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){const m=e.target.closest(".mip");if(m){e.preventDefault();m.classList.toggle("open")}}});
