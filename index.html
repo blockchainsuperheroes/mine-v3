@@ -56,6 +56,8 @@ button{font:inherit;color:inherit}
 .lane-lbl.live{color:var(--good)}.lane-lbl.live b::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--good);margin-right:6px;vertical-align:1px;animation:pulse 1.4s infinite}
 .lane-lbl.idle{color:var(--warn)}
 .lane-vp{overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 28px,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,transparent,#000 28px,#000 calc(100% - 28px),transparent)}
+.lane-plus{width:34px;height:34px;flex:none;border-radius:8px;border:1px dashed rgba(88,196,122,.55);background:transparent;color:var(--good);font:600 18px var(--mono);line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0}
+.lane-plus:hover{background:var(--good-soft);border-style:solid}
 .lane img.on{border-color:rgba(88,196,122,.8);box-shadow:0 0 8px rgba(88,196,122,.45)}
 .lane img.idle{filter:grayscale(.7) brightness(.75)}
 .lane img.idle:hover{filter:none}
@@ -805,6 +807,9 @@ async function ensureMine(w){try{
   const enrolled=new Set(((s&&s.active&&s.subscription&&s.subscription.nfts)||[]).map(keyOf));
   state.mineErr=false;state.mine={all:(v.nfts||[]).slice().sort(byHr),enrolled};paintArt()}catch(e){if(state.wallet===w){state.mineErr=true;applyMiningState()}}}
 function tileHtml(n,cls){const keep=cls==="on"||cls==="idle";return `<img src="${nftImg(n)}" alt="" width="34" height="34" decoding="async" class="${cls}" data-k="${esc(keyOf(n))}" title="${esc(n.name||("#"+n.token_id))} · ${esc(n.collection||"")}${n.hashrate?" · ⚡ "+n.hashrate:""}" onerror="${keep?"this.onerror=null;this.src=IMG_FALLBACK":"this.remove()"}">`}
+function fillTeamLane(id,team){const el=$(id);const t=team.slice(0,9);const empty=9-t.length;
+  const cycle=t.map(n=>tileHtml(n,"on")).join("")+Array.from({length:empty},()=>'<button class="lane-plus" type="button" title="Empty team slot: add an NFT">+</button>').join("");
+  el.classList.remove("still");const h=cycle+cycle+cycle;el.innerHTML=h+h}
 function fillLane(id,arr,cls){const a=arr.slice(0,24);const el=$(id);if(!a.length){el.innerHTML="";el.classList.remove("still");return}
   if(a.length<12){el.classList.add("still");el.innerHTML=a.map(n=>tileHtml(n,cls)).join("");return}
   el.classList.remove("still");const h=a.map(n=>tileHtml(n,cls)).join("");el.innerHTML=h+h}
@@ -814,7 +819,7 @@ function paintArt(){if(document.body.classList.contains("embed"))return;const po
   const perCol=[];const seenCol=new Set();pool.forEach(n=>{if(!seenCol.has(n.collection)){seenCol.add(n.collection);perCol.push(n)}});
   if(m&&m.all.length){const mining=m.all.filter(n=>m.enrolled.has(keyOf(n)));const idle=m.all.filter(n=>!m.enrolled.has(keyOf(n)));
     const live=state.myStatus&&state.myStatus.participating&&mining.length;
-    if(live){laneLbl("lbl1","Your NFTs mining · "+mining.length,"live","in this block's election now");fillLane("lane1",mining,"on");reg(mining,"mine")}
+    if(live){laneLbl("lbl1","Your team · "+Math.min(9,mining.length)+" of 9 mining","live",mining.length<9?"tap + to fill an empty slot":"in this block's election now");fillTeamLane("lane1",mining);reg(mining,"mine")}
     else{laneLbl("lbl1","Recent block winners","","NFTs on the last winning teams · tap one");fillLane("lane1",pool,"");reg(pool,"win")}
     if(idle.length){laneLbl("lbl2","Your idle NFTs · "+idle.length,"idle",live?"not in your team · tap to see":"not mining yet · tap Quick start");fillLane("lane2",idle,"idle");reg(idle,"idle")}
     else{laneLbl("lbl2","All your NFTs are mining","live","every NFT you hold is in the team");fillLane("lane2",perCol.length>=6?perCol:pool,"");reg(pool,"win")}}
@@ -897,7 +902,7 @@ async function healPending(){let p;try{p=JSON.parse(store.get("v3.pending")||"nu
   try{const rc=await pcRpc("eth_getTransactionReceipt",[p.hash]);if(!rc)return;if(rc.status!=="0x1"){store.set("v3.pending","");return}await registerTx(p);store.set("v3.pending","");toast("Your earlier mining payment is now registered");if(state.wallet)loadMyStatus(state.wallet)}catch(e){}}
 $("cubeCta").addEventListener("click",()=>{const a=$("cubeCta").dataset.act;if(a==="connect")connect();else if(a==="vault")location.hash="#vault";else if(a==="quick")quickStart();else if(a==="retry"){state.mineErr=false;applyMiningState();ensureMine(state.wallet)}else if(a==="eth")location.hash="#ethereum";else window.open(V2_APP,"_blank","noopener")});
 function openFromEl(el){const k=el&&el.dataset.k;const t=k&&state.tileMap&&state.tileMap.get(k);if(t)openNft(t)}
-$("train").addEventListener("click",e=>openFromEl(e.target.closest("img")));
+$("train").addEventListener("click",e=>{if(e.target.closest(".lane-plus")){if(state.wallet)quickStart();else connect();return}openFromEl(e.target.closest("img"))});
 $("cube").addEventListener("click",e=>{const a=$("cubeCta").dataset.act;if(a==="connect"){connect();return}if(a==="quick"){quickStart();return}openFromEl(e.target.closest(".f")||$("cube").querySelector(".f1"))});
 $("cube").addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();openFromEl($("cube").querySelector(".f1"))}});
 async function colStatsAll(){if(state.colStatsAll)return state.colStatsAll;try{const c=await get("/collection_stats",15000);state.colStatsAll=c.collections||[]}catch(e){state.colStatsAll=[]}return state.colStatsAll}
