@@ -155,6 +155,9 @@ h3{font:700 13px var(--body);margin:0 0 8px;color:var(--muted);text-transform:up
 .sheet .eyebrow{font:600 10px var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
 .sheet-t{font:700 18px var(--display);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tier-list{display:grid;gap:8px}
+.bonus-note{font-size:13px;color:var(--muted);padding:10px 12px;border-radius:10px;background:var(--raised);border:1px solid var(--line);margin-bottom:12px}
+.bonus-note.ok{border-color:var(--signal);background:var(--signal-soft);color:var(--ink)}
+.team-nft.bonus img{outline:2px solid var(--signal);outline-offset:1px}
 .tier-opt{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:10px;cursor:pointer;background:var(--surface)}
 .tier-opt:has(input:checked){border-color:var(--ore);background:var(--ore-soft)}
 .tier-opt small{display:block;color:var(--muted);font-size:12px;margin-top:2px}
@@ -821,20 +824,32 @@ function applyMiningState(){const w=state.wallet,my=state.myStatus,cw=$("cubeWra
   else if(!state.mine){cw.classList.add("idle");$("cubeStatusT").textContent=state.mineErr?"Could not load your NFTs":"Loading your NFTs…";cta.textContent=state.mineErr?"Retry":"Open my vault";cta.dataset.act=state.mineErr?"retry":"vault";cta.className="btn sm";b.textContent=my?"idle":"…";b.className="pill "+(my?"warn":"")}
   else{cw.classList.add("idle");const t=teamPick();$("cubeStatusT").textContent=t.team.length?"Ready · "+t.team.length+" NFTs · HR "+fmt(t.hr):"No mineable NFTs yet";cta.textContent=t.team.length?"Quick start":"Browse collections";cta.dataset.act=t.team.length?"quick":"eth";cta.className="btn sm primary";b.textContent="idle";b.className="pill warn"}}
 /* best team of 9 by hashrate, plus the tail of other qualifying NFTs */
-function teamPick(){const all=(state.mine&&state.mine.all)||[];const q=all.filter(n=>(n.hashrate||0)>0).sort(byHr);return{team:q.slice(0,9),tail:q.slice(9),hr:q.slice(0,9).reduce((a,n)=>a+(n.hashrate||0),0)}}
+function bonusAddr(){return((state.round&&state.round.daily_bonus&&state.round.daily_bonus.contract_address)||"").toLowerCase()}
+function isBonus(n){const b=bonusAddr();return !!b&&(n.contract_address||"").toLowerCase()===b}
+function teamPick(){const all=(state.mine&&state.mine.all)||[];const q=all.filter(n=>(n.hashrate||0)>0).sort(byHr);let team=q.slice(0,9);
+  const bestBonus=q.find(isBonus);if(bestBonus&&!team.some(isBonus)){team=team.length<9?team.concat([bestBonus]):team.slice(0,8).concat([bestBonus])}
+  const keys=new Set(team.map(keyOf));return{team,tail:q.filter(n=>!keys.has(keyOf(n))),hr:team.reduce((a,n)=>a+(n.hashrate||0),0)}}
+/* hashrate the generator will use this window: paid tiers multiply the whole team when it holds a bonus NFT; free tiers boost only the bonus NFTs */
+function effHr(team,T){const mult=(state.round&&state.round.daily_bonus&&state.round.daily_bonus.multiplier)||1;const base=team.reduce((a,n)=>a+(n.hashrate||0),0)*T.mult;
+  if(!team.some(isBonus)||mult<=1)return base;if(T.mode==="boosted"||T.mode==="boosted_7d")return base*mult;
+  const b=team.filter(isBonus).reduce((a,n)=>a+(n.hashrate||0),0)*T.mult;return base-b+b*mult}
 function quickStart(teamIn){const t=teamPick();const team=(teamIn&&teamIn.length?teamIn:t.team).slice(0,9);const hr=team.reduce((a,n)=>a+(n.hashrate||0),0);$("sheet").hidden=false;
   const tail=((state.mine&&state.mine.all)||[]).filter(n=>(n.hashrate||0)>0&&!team.some(m=>keyOf(m)===keyOf(n))).length;
-  const tiles=team.map(n=>`<div class="team-nft"><img src="${nftImg(n)}" alt="" onerror="this.src=IMG_FALLBACK"><div><b>${esc(n.name||("#"+n.token_id))}</b><small>${esc(n.collection||"")} · ⚡ ${fmt(n.hashrate)}</small></div></div>`).join("");
+  const tiles=team.map(n=>`<div class="team-nft${isBonus(n)?" bonus":""}"><img src="${nftImg(n)}" alt="" onerror="this.src=IMG_FALLBACK"><div><b>${esc(n.name||("#"+n.token_id))}</b><small>${esc(n.collection||"")} · ⚡ ${fmt(n.hashrate)}${isBonus(n)?" · bonus ×"+((state.round.daily_bonus||{}).multiplier||5):""}</small></div></div>`).join("");
   const net=state.round?.participants?.total_hashrate||0;
-  const tierRow=(k)=>{const T=TIERS[k];const eff=hr*T.mult;const sh=net?100*eff/(net+eff):0;return `<label class="tier-opt"><input type="radio" name="qsTier" value="${k}" ${k==="boosted"?"checked":""}><span><b>${T.label}</b><small>${T.sub} · <span id="fee_${k}">${T.feeSel?"…":T.tx?"gas only":"free"}</span> · ≈ ${sh.toFixed(2)}% share</small></span></label>`};
+  const tierRow=(k)=>{const T=TIERS[k];const eff=effHr(team,T);const sh=net?100*eff/(net+eff):0;return `<label class="tier-opt"><input type="radio" name="qsTier" value="${k}" ${k==="boosted"?"checked":""}><span><b>${T.label}</b><small>${T.sub} · <span id="fee_${k}">${T.feeSel?"…":T.tx?"gas only":"free"}</span> · ≈ ${sh.toFixed(2)}% share</small></span></label>`};
   $("sheetBody").innerHTML=`<div class="eyebrow">Start mining</div><div class="sheet-t" style="white-space:normal">Your team of ${team.length} · HR ${fmt(hr)}</div>
     <p class="hint" style="margin-top:6px">${teamIn&&teamIn.length?"Your selection from the vault.":"Picked by hashrate from everything in your vault."} ${tail?`You also hold ${tail} other qualifying NFTs: your tail, which will add up to +50% once the tail boost (MIP-0001) is live.`:""}</p>
     <div class="team" style="margin:12px 0">${tiles}</div>
+    ${bonusNote(team)}
     <div class="tier-list">${["offchain","onchain","boosted","boosted_7d"].map(tierRow).join("")}</div>
     <div class="sheet-actions"><button class="btn primary" type="button" id="qsGo">Start mining</button><a class="btn sm ghost" href="${V2_APP}" target="_blank" rel="noopener">Pay with Points in v2 ↗</a></div>
     <div class="qs-status" id="qsStatus" role="status"></div>`;
   ["boosted","boosted_7d"].forEach(async k=>{try{const f=await tierFee(k);const el=$("fee_"+k);if(el)el.textContent=fmt(Number(f)/1e18,2)+" PC"}catch(e){}});
   $("qsGo").addEventListener("click",()=>{const k=(document.querySelector('input[name="qsTier"]:checked')||{}).value||"boosted";startMiningV3(k,team)})}
+function bonusNote(team){const b=state.round&&state.round.daily_bonus;if(!b)return"";const ends=b.ends_at?new Date(b.ends_at):null;const until=ends?ends.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"}):"the end of this window";
+  return team.some(isBonus)?`<div class="bonus-note ok">Your team holds a <b>${esc(b.collection_name)}</b>, today's bonus collection. On a boost your whole team mines ×${b.multiplier} until ${until}; on a free tier the bonus NFT gets ×${b.multiplier}. The bonus moves to another collection every 4 hours, so re-pick your team then to keep it.</div>`
+    :`<div class="bonus-note">Bonus collection until ${until}: <b>${esc(b.collection_name)}</b> ×${b.multiplier}. You don't hold one, so this team mines without it. Adding any ${esc(b.collection_name)} NFT would multiply a boosted team ×${b.multiplier}.</div>`}
 /* ---------- mining actions: same contract calls and backend endpoints as v2 ---------- */
 const MINING_ADDR="0x76c3Af62c116dcddb04671077AdDAb6c76a26788";
 const TIERS={offchain:{label:"Free · 4 hours",sub:"0.25× hashrate, no transaction",mult:.25,tx:null,feeSel:null,mode:"offchain"},
