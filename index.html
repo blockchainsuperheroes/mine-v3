@@ -865,10 +865,25 @@ function quickStart(teamIn){const t=teamPick();const team=(teamIn&&teamIn.length
     <div class="team" style="margin:12px 0">${tiles}</div>
     ${bonusNote(team)}
     <div class="tier-list">${["offchain","onchain","boosted","boosted_7d"].map(tierRow).join("")}</div>
-    <div class="sheet-actions"><button class="btn primary" type="button" id="qsGo">Start mining</button><a class="btn sm ghost" href="${V2_APP}" target="_blank" rel="noopener">Pay with Points in v2 ↗</a></div>
+    ${pointsBlock(team,net)}
+    <div class="sheet-actions"><button class="btn primary" type="button" id="qsGo">Start mining</button></div>
     <div class="qs-status" id="qsStatus" role="status"></div>`;
   ["boosted","boosted_7d"].forEach(async k=>{try{const f=await tierFee(k);const el=$("fee_"+k);if(el)el.textContent=fmt(Number(f)/1e18,2)+" PC"}catch(e){}});
-  $("qsGo").addEventListener("click",()=>{const k=(document.querySelector('input[name="qsTier"]:checked')||{}).value||"boosted";startMiningV3(k,team)})}
+  $("qsGo").addEventListener("click",()=>{const k=(document.querySelector('input[name="qsTier"]:checked')||{}).value||"boosted";startMiningV3(k,team)});
+  const lg=$("qsLogin");if(lg)lg.addEventListener("click",async()=>{lg.disabled=true;if(await pgLogin())quickStart(teamIn);else lg.disabled=false});
+  const lo=$("qsLogout");if(lo)lo.addEventListener("click",()=>{pgLogout();quickStart(teamIn)});
+  if(state.pg&&!state.points)loadPoints().then(()=>{if(!$("sheet").hidden)quickStart(teamIn)})}
+function pointsBlock(team,net){if(document.body.classList.contains("embed"))return"";
+  const head=`<div class="eyebrow" style="margin-top:14px">Pay with Points</div>`;
+  if(!state.pg)return head+`<p class="hint">Points boosts use your upgraded Pentagon account. <button class="btn sm ghost" type="button" id="qsLogin">Log in to use Points</button></p>`;
+  const P=state.points;if(!P)return head+`<p class="hint">Loading your Points…</p>`;
+  if(P.error)return head+`<p class="hint">Couldn't load your Points right now. <button class="btn sm ghost" type="button" id="qsLogout">Log out</button></p>`;
+  const bal=`<b>${fmt(P.npc_points)}</b> Points`;
+  if(!P.aa2_rail)return head+`<p class="hint">${P.migration_state==="aa2"?`You have ${bal}. Points boosts here are switching on soon.`:`You have ${bal}. Points boosts on this page need your account upgrade, which is rolling out now. Wallet boosts above work today.`} <button class="btn sm ghost" type="button" id="qsLogout">Log out</button></p>`;
+  const cost=P.tier_points||{npc:1,boosted:20,boosted_7d:100};
+  const row=k=>{const T=TIERS[k];const eff=effHr(team,T);const sh=net?100*eff/(net+eff):0;const c=cost[T.points];const ok=P.npc_points>=c;
+    return `<label class="tier-opt"${ok?"":' style="opacity:.5"'}><input type="radio" name="qsTier" value="${k}" ${ok?"":"disabled"}><span><b>${T.label}</b><small>${T.sub} · ${fmt(c)} Point${c===1?"":"s"} · ≈ ${sh.toFixed(2)}% share</small></span></label>`};
+  return head+`<p class="hint">You have ${bal} in your upgraded account. <button class="btn sm ghost" type="button" id="qsLogout">Log out</button></p><div class="tier-list">${["pts_npc","pts_boosted","pts_boosted_7d"].map(row).join("")}</div>`}
 function bonusNote(team){const b=state.round&&state.round.daily_bonus;if(!b)return"";const ends=b.ends_at?new Date(b.ends_at):null;const until=ends?ends.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"}):"the end of this window";
   return team.some(isBonus)?`<div class="bonus-note ok">Your team holds a <b>${esc(b.collection_name)}</b>, today's bonus collection. On a boost your whole team mines ×${b.multiplier} until ${until}; on a free tier the bonus NFT gets ×${b.multiplier}. The bonus moves to another collection every 4 hours, so re-pick your team then to keep it.</div>`
     :`<div class="bonus-note">Bonus collection until ${until}: <b>${esc(b.collection_name)}</b> ×${b.multiplier}. You don't hold one, so this team mines without it. Adding any ${esc(b.collection_name)} NFT would multiply a boosted team ×${b.multiplier}.</div>`}
@@ -877,11 +892,30 @@ const MINING_ADDR="0x76c3Af62c116dcddb04671077AdDAb6c76a26788";
 const TIERS={offchain:{label:"Free · 4 hours",sub:"0.25× hashrate, no transaction",mult:.25,tx:null,feeSel:null,mode:"offchain"},
   onchain:{label:"Free on-chain · 8 hours",sub:"1× hashrate",mult:1,tx:"0xb9cd1a3b",feeSel:null,mode:"onchain"},
   boosted:{label:"Boost · 24 hours",sub:"5× hashrate",mult:5,tx:"0x090f0baf",feeSel:"0xddca3f43",mode:"boosted"},
-  boosted_7d:{label:"Boost · 7 days",sub:"5× hashrate",mult:5,tx:"0x60684b2b",feeSel:"0x9ba32a56",mode:"boosted_7d"}};
+  boosted_7d:{label:"Boost · 7 days",sub:"5× hashrate",mult:5,tx:"0x60684b2b",feeSel:"0x9ba32a56",mode:"boosted_7d"},
+  pts_npc:{label:"Points · 8 hours",sub:"1× hashrate",mult:1,tx:null,feeSel:null,mode:"npc",points:"npc"},
+  pts_boosted:{label:"Points boost · 24 hours",sub:"5× hashrate",mult:5,tx:null,feeSel:null,mode:"boosted",points:"boosted"},
+  pts_boosted_7d:{label:"Points boost · 7 days",sub:"5× hashrate",mult:5,tx:null,feeSel:null,mode:"boosted_7d",points:"boosted_7d"}};
+/* ---------- PG login + Points (AA2 accounts only) ---------- */
+const sess={get(k){try{return sessionStorage.getItem(k)}catch(e){return null}},set(k,v){try{v?sessionStorage.setItem(k,v):sessionStorage.removeItem(k)}catch(e){}}};
+state.pg=sess.get("v3.pg")||null;state.points=null;
+async function loadPoints(){if(!state.pg){state.points=null;return null}
+  try{const r=await fetch(API+"/npc/points",{headers:{Authorization:"Bearer "+state.pg}});
+    if(r.status===401){state.pg=null;sess.set("v3.pg",null);state.points=null;return null}
+    if(!r.ok)throw new Error("HTTP "+r.status);state.points=await r.json()}catch(e){state.points={error:true}}
+  return state.points}
+async function pgLogin(){if(!window.ethereum){toast("Open this page in a browser with a wallet extension to log in");return false}
+  try{const acc=(((await window.ethereum.request({method:"eth_requestAccounts"}))||[])[0]||"").toLowerCase();if(!acc)return false;
+    const msg=`Logging into Pentagon Games,${Math.floor(Date.now()/1000)}`;
+    const sig=await window.ethereum.request({method:"personal_sign",params:[msg,acc]});
+    const j=await apiPost("/auth/wallet_login",{address:acc,message:msg,signature:sig});
+    state.pg=j.access_token;sess.set("v3.pg",state.pg);await loadPoints();toast("Logged in");return true}
+  catch(e){if(e&&e.code===4001){toast("Login cancelled");return false}toast(String(e.message||e));return false}}
+function pgLogout(){state.pg=null;state.points=null;sess.set("v3.pg",null)}
 async function pcRpc(method,params){const r=await fetch(PC_RPC,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method,params})});const j=await r.json();if(j.error)throw new Error(j.error.message||"rpc");return j.result}
 async function tierFee(k){const T=TIERS[k];if(!T.feeSel)return 0n;const r=await pcRpc("eth_call",[{to:MINING_ADDR,data:T.feeSel},"latest"]);return BigInt(r)}
 const nftBody=(team)=>team.map(n=>({contract_address:n.contract_address,token_id:String(n.token_id),chain_id:n.chain_id||3344}));
-async function apiPost(path,body){const r=await fetch(API+path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});let j={};try{j=await r.json()}catch(e){}if(!r.ok)throw new Error((j&&(j.detail&&j.detail.message||j.detail))||("HTTP "+r.status));return j}
+async function apiPost(path,body,token){const h={"Content-Type":"application/json"};if(token)h.Authorization="Bearer "+token;const r=await fetch(API+path,{method:"POST",headers:h,body:JSON.stringify(body)});let j={};try{j=await r.json()}catch(e){}if(!r.ok)throw new Error((j&&(j.detail&&j.detail.message||j.detail))||("HTTP "+r.status));return j}
 function qsSay(msg,kind){const el=$("qsStatus");if(el){el.className="qs-status "+(kind||"");el.innerHTML=msg}}
 async function registerTx(p){let last;for(let a=1;a<=5;a++){try{qsSay(`Registering your mining session… (attempt ${a}/5)`);return await apiPost("/participate_tx",{wallet_address:p.wallet,nfts:p.nfts,tx_hash:p.hash,chain_id:3344,mode:p.mode})}catch(e){last=e;await new Promise(r=>setTimeout(r,a*3000))}}throw last}
 async function startMiningV3(k,team){const T=TIERS[k];const btn=$("qsGo");
@@ -893,6 +927,14 @@ async function startMiningV3(k,team){const T=TIERS[k];const btn=$("qsGo");
     if(!acc){qsSay("Connect your wallet to continue.","warn");return}
     if(acc!==state.wallet.toLowerCase()){qsSay(`Your wallet extension is on ${short(acc)}, but the vault loaded is ${short(state.wallet)}. Switch accounts in your wallet, or connect that wallet here.`,"warn");return}
     const nfts=nftBody(team);
+    if(T.points){if(!state.pg){qsSay("Log in to pay with Points.","warn");return}
+      qsSay("Paying with Points from your upgraded account…");
+      try{const j=await apiPost("/participate",{wallet_address:acc,nfts,mode:"npc",pay_with_npc:true,tier:T.points,points_rail:"aa2"},state.pg);
+        const np=j.npc_payment||{};if(state.points&&np.remaining_npc!=null)state.points.npc_points=np.remaining_npc;
+        qsSay(`⛏ Mining started: ${T.label.toLowerCase()}. Paid ${fmt(np.cost_npc)} Point${np.cost_npc===1?"":"s"}${np.tx_hash?` · <a href="${EXPLORER}/tx/${np.tx_hash}" target="_blank" rel="noopener">${short(np.tx_hash)}</a>`:""}.`,"ok");
+        toast("Mining started");loadMyStatus(acc);ensureMine(acc)}
+      catch(e){qsSay(esc(String(e.message||e)),"warn")}
+      return}
     if(!T.tx){qsSay("Starting free mining…");await apiPost("/participate",{wallet_address:acc,nfts,mode:"offchain"});qsSay("⛏ Mining started on the free tier for 4 hours.","ok");toast("Mining started");loadMyStatus(acc);ensureMine(acc);return}
     try{await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:"0xD10"}]})}catch(se){if(se.code===4902){await window.ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:"0xD10",chainName:"Pentagon Chain",nativeCurrency:{name:"PC",decimals:18,symbol:"PC"},rpcUrls:["https://rpc.pentagon.games"],blockExplorerUrls:["https://explorer.pentagon.games/"]}]})}else throw se}
     const fee=await tierFee(k);qsSay(`Confirm the ${T.label.toLowerCase()} transaction in your wallet…`);
