@@ -1021,7 +1021,7 @@ $("btnWallet").addEventListener("click",connect);
 $("btnPg").addEventListener("click",()=>{if(state.pg){if(confirm("Sign out of your Pentagon account on this site?")){pgLogout();toast("Signed out")}return}pgLogin()});
 /* PC Connector 1.0.0 treats *.pentagon.games as pentagon.games and links "Sign in" to the full web wallet with ?continue=mine-v3,
    which strands users there. Until connector 1.0.1 (client pg-mining) ships, open the Pentagon sign-in pop-up instead. */
-document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest('a[href*="/pgai/web-local-app/"]');
+document.addEventListener("click",e=>{const a=(e.composedPath?e.composedPath():[e.target]).find(n=>n&&n.tagName==="A"&&/\/pgai\/web-local-app\//.test(n.getAttribute("href")||""));
   if(!a||!window.PGSignIn||document.body.classList.contains("embed"))return;e.preventDefault();e.stopPropagation();pgLogin()},true);
 if(state.pg)afterPgSignIn();else renderPgChip();
 (function hookPCC(tries){if(window.PCConnector&&window.PCConnector.onChange){document.body.classList.add("pcc-on");window.PCConnector.onChange(function(s){var a=s&&s.account;if(a&&/^0x[a-fA-F0-9]{40}$/.test(a)&&(!state.wallet||state.wallet.toLowerCase()!==a.toLowerCase())&&!document.body.classList.contains("embed")){if(!state.wallet)setWallet(a)}})}else if(tries<40)setTimeout(function(){hookPCC(tries+1)},250)})(0);
