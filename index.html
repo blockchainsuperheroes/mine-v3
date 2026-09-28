@@ -72,6 +72,8 @@ button{font:inherit;color:inherit}
 @media (prefers-reduced-motion:reduce){.lane{animation:none}}
 body.embed .train{display:none}
 body.embed .pcc{display:none}
+body.embed #btnPg{display:none}
+#btnPg .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3ddc84;margin-right:6px;vertical-align:middle}
 .pcc{display:inline-flex;--pg-accent:#f0a04b;--pg-accent-text:#f0a04b;--pg-on-accent:#1a1206;--pg-surface:#121821;--pg-surface-raised:#182130;--pg-border:#24303f;--pg-border-strong:#2f3d4f;--pg-text:#e9eef5;--pg-text-muted:#8b98a8;--pg-font-body:Manrope,system-ui,sans-serif;--pg-font-display:Manrope,system-ui,sans-serif;--pg-radius:12px;--pg-radius-small:9px;font-size:13px}
 /* one connect button: while no wallet is loaded, the PC Connector pill is the connect entry point */
 body.pcc-on:not(.has-wallet) #btnWallet{display:none}
@@ -357,6 +359,7 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
     </div>
     <div class="spacer"></div>
     <div data-pc-connector class="pcc" id="pcConnector"></div>
+    <button class="btn ghost sm" type="button" id="btnPg" hidden>Sign in</button>
     <button class="btn ghost sm" type="button" id="btnMusic" title="Background music" aria-pressed="false">♪ Music</button>
     <button class="btn ghost sm" type="button" id="btnLegacy" title="Open the current v2 app">v2 app ↗</button>
     <button class="wallet" type="button" id="btnWallet"><span class="ok" id="wDot" hidden></span><span id="wLabel">Connect wallet</span><span class="addr" id="wAddr"></span></button>
@@ -910,7 +913,7 @@ async function loadPoints(){if(!state.pg){state.points=null;return null}
 async function pgLogin(){
   if(window.PGSignIn){try{const r=await window.PGSignIn.open();
       if(!(r&&r.ok)){if(r&&r.reason==="popup-blocked")toast("Your browser blocked the sign-in window. Allow pop-ups for this site and click again.");return false}
-      state.pg=r.token||window.PGSignIn.token();await loadPoints();toast("Signed in");return true}catch(e){toast("Sign-in unavailable. Try again.");return false}}
+      state.pg=r.token||window.PGSignIn.token();await afterPgSignIn();toast("Signed in");return true}catch(e){toast("Sign-in unavailable. Try again.");return false}}
   if(!window.ethereum){toast("Open this page in a browser with a wallet extension to log in");return false}
   try{const acc=(((await window.ethereum.request({method:"eth_requestAccounts"}))||[])[0]||"").toLowerCase();if(!acc)return false;
     const msg=`Logging into Pentagon Games,${Math.floor(Date.now()/1000)}`;
@@ -918,7 +921,17 @@ async function pgLogin(){
     const j=await apiPost("/auth/wallet_login",{address:acc,message:msg,signature:sig});
     state.pg=j.access_token;sess.set("v3.pg",state.pg);await loadPoints();toast("Logged in");return true}
   catch(e){if(e&&e.code===4001){toast("Login cancelled");return false}toast(String(e.message||e));return false}}
-function pgLogout(){state.pg=null;state.points=null;sess.set("v3.pg",null);if(window.PGSignIn)window.PGSignIn.signOut()}
+function pgLogout(){state.pg=null;state.points=null;state.pgUser=null;sess.set("v3.pg",null);if(window.PGSignIn)window.PGSignIn.signOut();renderPgChip()}
+async function loadPgUser(){if(!state.pg)return null;
+  try{const r=await fetch("https://api.account.pentagon.games/user/info",{headers:{Authorization:"Bearer "+state.pg}});if(r.ok){const j=await r.json();state.pgUser=(j&&j.result)||null}}catch(e){}
+  return state.pgUser}
+/* After Pentagon sign-in: show the account in the top bar and, if no wallet is connected, load the account's wallet (its NFTs + linked wallets). */
+async function afterPgSignIn(){await Promise.all([loadPoints(),loadPgUser()]);renderPgChip();
+  const mm=state.pgUser&&state.pgUser.mm_address;if(!state.wallet&&mm&&/^0x[a-fA-F0-9]{40}$/.test(mm))setWallet(mm)}
+function renderPgChip(){const b=$("btnPg");if(!b)return;b.hidden=false;
+  if(!state.pg){b.textContent="Sign in";b.title="Sign in with your Pentagon account (Points, linked wallets)";return}
+  const P=state.points,u=state.pgUser;const name=(u&&u.username)||"Signed in";
+  b.innerHTML=`<span class="dot"></span>${esc(name)}${P&&!P.error?` · ${fmt(P.npc_points)} Points`:""}`;b.title="Signed in with Pentagon. Click to sign out."}
 async function pcRpc(method,params){const r=await fetch(PC_RPC,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method,params})});const j=await r.json();if(j.error)throw new Error(j.error.message||"rpc");return j.result}
 async function tierFee(k){const T=TIERS[k];if(!T.feeSel)return 0n;const r=await pcRpc("eth_call",[{to:MINING_ADDR,data:T.feeSel},"latest"]);return BigInt(r)}
 const nftBody=(team)=>team.map(n=>({contract_address:n.contract_address,token_id:String(n.token_id),chain_id:n.chain_id||3344}));
@@ -1005,6 +1018,12 @@ async function connect(){if(state.wallet){setWallet(null);toast("Disconnected");
   if(window.ethereum){try{const acc=await window.ethereum.request({method:"eth_requestAccounts"});if(acc&&acc[0]){setWallet(acc[0]);toast("Connected "+short(acc[0]));return}}catch(e){toast("Wallet request rejected")}}
   const a=prompt("No wallet extension found. Paste an address to view (read-only):");if(a&&/^0x[a-fA-F0-9]{40}$/.test(a.trim())){setWallet(a.trim());toast("Viewing "+short(a.trim()))}}
 $("btnWallet").addEventListener("click",connect);
+$("btnPg").addEventListener("click",()=>{if(state.pg){if(confirm("Sign out of your Pentagon account on this site?")){pgLogout();toast("Signed out")}return}pgLogin()});
+/* PC Connector 1.0.0 treats *.pentagon.games as pentagon.games and links "Sign in" to the full web wallet with ?continue=mine-v3,
+   which strands users there. Until connector 1.0.1 (client pg-mining) ships, open the Pentagon sign-in pop-up instead. */
+document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest('a[href*="/pgai/web-local-app/"]');
+  if(!a||!window.PGSignIn||document.body.classList.contains("embed"))return;e.preventDefault();e.stopPropagation();pgLogin()},true);
+if(state.pg)afterPgSignIn();else renderPgChip();
 (function hookPCC(tries){if(window.PCConnector&&window.PCConnector.onChange){document.body.classList.add("pcc-on");window.PCConnector.onChange(function(s){var a=s&&s.account;if(a&&/^0x[a-fA-F0-9]{40}$/.test(a)&&(!state.wallet||state.wallet.toLowerCase()!==a.toLowerCase())&&!document.body.classList.contains("embed")){if(!state.wallet)setWallet(a)}})}else if(tries<40)setTimeout(function(){hookPCC(tries+1)},250)})(0);
 $("btnLegacy").addEventListener("click",()=>window.open(V2_APP,"_blank","noopener"));
 $("btnBoost").addEventListener("click",()=>{const v=state.vault;const sel=v?v.nfts.filter(n=>state.sel.has(n.id)):[];if(!state.wallet){connect();return}if(!state.mine&&v)state.mine={all:v.nfts.slice().sort(byHr),enrolled:new Set()};quickStart(sel.sort(byHr).slice(0,9))});
