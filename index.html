@@ -72,11 +72,9 @@ button{font:inherit;color:inherit}
 @media (prefers-reduced-motion:reduce){.lane{animation:none}}
 body.embed .train{display:none}
 body.embed .pcc{display:none}
-body.embed #btnPg{display:none}
-#btnPg .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:#3ddc84;margin-right:6px;vertical-align:middle}
 .pcc{display:inline-flex;--pg-accent:#f0a04b;--pg-accent-text:#f0a04b;--pg-on-accent:#1a1206;--pg-surface:#121821;--pg-surface-raised:#182130;--pg-border:#24303f;--pg-border-strong:#2f3d4f;--pg-text:#e9eef5;--pg-text-muted:#8b98a8;--pg-font-body:Manrope,system-ui,sans-serif;--pg-font-display:Manrope,system-ui,sans-serif;--pg-radius:12px;--pg-radius-small:9px;font-size:13px}
 /* one connect button: while no wallet is loaded, the PC Connector pill is the connect entry point */
-body.pcc-on:not(.has-wallet) #btnWallet{display:none}
+body.pcc-on #btnWallet{display:none}
 @media (max-width:600px){#btnLegacy,#btnMusic{display:none}.topbar{gap:8px}}
 .rail{border-right:1px solid var(--line);padding:14px 10px;background:var(--surface);position:sticky;top:0;align-self:start;height:auto}
 .rail a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:9px;color:var(--muted);text-decoration:none;font-weight:600;font-size:14px}
@@ -359,7 +357,6 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
     </div>
     <div class="spacer"></div>
     <div data-pc-connector class="pcc" id="pcConnector"></div>
-    <button class="btn ghost sm" type="button" id="btnPg" hidden>Sign in</button>
     <button class="btn ghost sm" type="button" id="btnMusic" title="Background music" aria-pressed="false">♪ Music</button>
     <button class="btn ghost sm" type="button" id="btnLegacy" title="Open the current v2 app">v2 app ↗</button>
     <button class="wallet" type="button" id="btnWallet"><span class="ok" id="wDot" hidden></span><span id="wLabel">Connect wallet</span><span class="addr" id="wAddr"></span></button>
@@ -858,7 +855,7 @@ function teamPick(){const all=(state.mine&&state.mine.all)||[];const q=all.filte
 function effHr(team,T){const mult=(state.round&&state.round.daily_bonus&&state.round.daily_bonus.multiplier)||1;const base=team.reduce((a,n)=>a+(n.hashrate||0),0)*T.mult;
   if(!team.some(isBonus)||mult<=1)return base;if(T.mode==="boosted"||T.mode==="boosted_7d")return base*mult;
   const b=team.filter(isBonus).reduce((a,n)=>a+(n.hashrate||0),0)*T.mult;return base-b+b*mult}
-function quickStart(teamIn){const t=teamPick();const team=(teamIn&&teamIn.length?teamIn:t.team).slice(0,9);const hr=team.reduce((a,n)=>a+(n.hashrate||0),0);$("sheet").hidden=false;
+function quickStart(teamIn){state.qsTeam=teamIn||null;const t=teamPick();const team=(teamIn&&teamIn.length?teamIn:t.team).slice(0,9);const hr=team.reduce((a,n)=>a+(n.hashrate||0),0);$("sheet").hidden=false;
   const tail=((state.mine&&state.mine.all)||[]).filter(n=>(n.hashrate||0)>0&&!team.some(m=>keyOf(m)===keyOf(n))).length;
   const tiles=team.map(n=>`<div class="team-nft${isBonus(n)?" bonus":""}"><img src="${nftImg(n)}" alt="" onerror="this.src=IMG_FALLBACK"><div><b>${esc(n.name||("#"+n.token_id))}</b><small>${esc(n.collection||"")} · ⚡ ${fmt(n.hashrate)}${isBonus(n)?" · bonus ×"+((state.round.daily_bonus||{}).multiplier||5):""}</small></div></div>`).join("");
   const net=state.round?.participants?.total_hashrate||0;
@@ -873,20 +870,18 @@ function quickStart(teamIn){const t=teamPick();const team=(teamIn&&teamIn.length
     <div class="qs-status" id="qsStatus" role="status"></div>`;
   ["boosted","boosted_7d"].forEach(async k=>{try{const f=await tierFee(k);const el=$("fee_"+k);if(el)el.textContent=fmt(Number(f)/1e18,2)+" PC"}catch(e){}});
   $("qsGo").addEventListener("click",()=>{const k=(document.querySelector('input[name="qsTier"]:checked')||{}).value||"boosted";startMiningV3(k,team)});
-  const lg=$("qsLogin");if(lg)lg.addEventListener("click",async()=>{lg.disabled=true;if(await pgLogin())quickStart(teamIn);else lg.disabled=false});
-  const lo=$("qsLogout");if(lo)lo.addEventListener("click",()=>{pgLogout();quickStart(teamIn)});
+  const lg=$("qsLogin");if(lg)lg.addEventListener("click",()=>pgLogin());
   if(state.pg&&!state.points)loadPoints().then(()=>{if(!$("sheet").hidden)quickStart(teamIn)})}
 function pointsBlock(team,net){if(document.body.classList.contains("embed"))return"";
   const head=`<div class="eyebrow" style="margin-top:14px">Pay with Points</div>`;
-  if(!state.pg)return head+`<p class="hint">Points boosts use your upgraded Pentagon account. <button class="btn sm ghost" type="button" id="qsLogin">Sign in with Pentagon</button></p>`;
-  const P=state.points;if(!P)return head+`<p class="hint">Loading your Points…</p>`;
-  if(P.error)return head+`<p class="hint">Couldn't load your Points right now. <button class="btn sm ghost" type="button" id="qsLogout">Log out</button></p>`;
-  const bal=`<b>${fmt(P.npc_points)}</b> Points`;
-  if(!P.aa2_rail)return head+`<p class="hint">${P.migration_state==="aa2"?`You have ${bal}. Points boosts here are switching on soon.`:`You have ${bal}. Points boosts on this page need your account upgrade, which is rolling out now. Wallet boosts above work today.`} <button class="btn sm ghost" type="button" id="qsLogout">Log out</button></p>`;
-  const cost=P.tier_points||{npc:1,boosted:20,boosted_7d:100};
-  const row=k=>{const T=TIERS[k];const eff=effHr(team,T);const sh=net?100*eff/(net+eff):0;const c=cost[T.points];const ok=(P.npc_points_aa2!=null?P.npc_points_aa2:P.npc_points)>=c;
-    return `<label class="tier-opt"${ok?"":' style="opacity:.5"'}><input type="radio" name="qsTier" value="${k}" ${ok?"":"disabled"}><span><b>${T.label}</b><small>${T.sub} · ${fmt(c)} Point${c===1?"":"s"} · ≈ ${sh.toFixed(2)}% share</small></span></label>`};
-  return head+`<p class="hint">You have ${bal} in your upgraded account.${P.balance_settling?" Part of it is still moving over and becomes spendable in a few minutes.":""} <button class="btn sm ghost" type="button" id="qsLogout">Log out</button></p><div class="tier-list">${["pts_npc","pts_boosted","pts_boosted_7d"].map(row).join("")}</div>`}
+  if(!state.pg)return head+`<p class="hint">Points boosts use your Pentagon account. <button class="btn sm ghost" type="button" id="qsLogin">Log in</button></p>`;
+  const P=state.points;if(!P)return head+`<p class="hint">Loading your account…</p>`;
+  if(P.error)return head+`<p class="hint">Couldn't read your Points right now. Try again in a moment.</p>`;
+  if(!P.aa2_rail)return head+`<p class="hint">${P.migration_state==="aa2"?"Points boosts here are switching on soon.":"Points boosts on this page need your account upgrade, which is rolling out now. Wallet boosts above work today."}</p>`;
+  const cost=P.tier_points||{npc:1,boosted:20,boosted_7d:100};const have=P.npc_points_aa2!=null?P.npc_points_aa2:P.npc_points;
+  const row=k=>{const T=TIERS[k];const eff=effHr(team,T);const sh=net?100*eff/(net+eff):0;const c=cost[T.points];const ok=have>=c;
+    return `<label class="tier-opt"${ok?"":' style="opacity:.5"'}><input type="radio" name="qsTier" value="${k}" ${ok?"":"disabled"}><span><b>${T.label}</b><small>${T.sub} · ${fmt(c)} Point${c===1?"":"s"}${ok?"":" · not enough Points"} · ≈ ${sh.toFixed(2)}% share</small></span></label>`};
+  return head+(P.balance_settling?`<p class="hint">Part of your balance is still moving to your upgraded account and becomes spendable in a few minutes.</p>`:"")+`<div class="tier-list">${["pts_npc","pts_boosted","pts_boosted_7d"].map(row).join("")}</div>`}
 function bonusNote(team){const b=state.round&&state.round.daily_bonus;if(!b)return"";const ends=b.ends_at?new Date(b.ends_at):null;const until=ends?ends.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"}):"the end of this window";
   return team.some(isBonus)?`<div class="bonus-note ok">Your team holds a <b>${esc(b.collection_name)}</b>, today's bonus collection. On a boost your whole team mines ×${b.multiplier} until ${until}; on a free tier the bonus NFT gets ×${b.multiplier}. The bonus moves to another collection every 4 hours, so re-pick your team then to keep it.</div>`
     :`<div class="bonus-note">Bonus collection until ${until}: <b>${esc(b.collection_name)}</b> ×${b.multiplier}. You don't hold one, so this team mines without it. Adding any ${esc(b.collection_name)} NFT would multiply a boosted team ×${b.multiplier}.</div>`}
@@ -901,37 +896,29 @@ const TIERS={offchain:{label:"Free · 4 hours",sub:"0.25× hashrate, no transact
   pts_boosted_7d:{label:"Points boost · 7 days",sub:"5× hashrate",mult:5,tx:null,feeSel:null,mode:"boosted_7d",points:"boosted_7d"}};
 /* ---------- PG login + Points (AA2 accounts only) ---------- */
 const sess={get(k){try{return sessionStorage.getItem(k)}catch(e){return null}},set(k,v){try{v?sessionStorage.setItem(k,v):sessionStorage.removeItem(k)}catch(e){}}};
-/* Sign in with Pentagon (pg-signin.js, client pg-mining): pop-up on this site, overlay on pentagon.games. The login token lands in
-   localStorage.pg_token on this origin; it is sent only as Bearer to our API, which forwards it to identity. Wallet-signature login is the fallback. */
+/* PENTAGON-LOGIN-STANDARD: the PC Connector pill (pinned 1.0.3, client pg-mining) is the only login widget. It signs users in (popup),
+   shows Points and connects wallets. This page opens it with PCConnector.signIn(), signs out with PCConnector.signOut(), and hands it the
+   Points it reads server-side (PCConnector.setPoints). The login token (localStorage.pg_token) goes only to our API as Bearer. */
 function pgSiteToken(){try{return localStorage.getItem("pg_token")}catch(e){return null}}
-state.pg=pgSiteToken()||sess.get("v3.pg")||null;state.points=null;
+state.pg=pgSiteToken();state.points=null;
+const PCC=()=>window.PCConnector||null;
 async function loadPoints(){if(!state.pg){state.points=null;return null}
   try{const r=await fetch(API+"/npc/points",{headers:{Authorization:"Bearer "+state.pg}});
-    if(r.status===401){state.pg=null;sess.set("v3.pg",null);state.points=null;if(window.PGSignIn)window.PGSignIn.signOut();return null}
-    if(!r.ok)throw new Error("HTTP "+r.status);state.points=await r.json()}catch(e){state.points={error:true}}
+    if(r.status===401){state.points=null;if(PCC()&&PCC().signOut)PCC().signOut();state.pg=null;return null}
+    if(!r.ok)throw new Error("HTTP "+r.status);state.points=await r.json();
+    if(PCC()&&PCC().setPoints)PCC().setPoints(state.points.npc_points)}catch(e){state.points={error:true}}
   return state.points}
-async function pgLogin(){
-  if(window.PGSignIn){try{const r=await window.PGSignIn.open();
-      if(!(r&&r.ok)){if(r&&r.reason==="popup-blocked")toast("Your browser blocked the sign-in window. Allow pop-ups for this site and click again.");return false}
-      state.pg=r.token||window.PGSignIn.token();await afterPgSignIn();toast("Signed in");return true}catch(e){toast("Sign-in unavailable. Try again.");return false}}
-  if(!window.ethereum){toast("Open this page in a browser with a wallet extension to log in");return false}
-  try{const acc=(((await window.ethereum.request({method:"eth_requestAccounts"}))||[])[0]||"").toLowerCase();if(!acc)return false;
-    const msg=`Logging into Pentagon Games,${Math.floor(Date.now()/1000)}`;
-    const sig=await window.ethereum.request({method:"personal_sign",params:[msg,acc]});
-    const j=await apiPost("/auth/wallet_login",{address:acc,message:msg,signature:sig});
-    state.pg=j.access_token;sess.set("v3.pg",state.pg);await loadPoints();toast("Logged in");return true}
-  catch(e){if(e&&e.code===4001){toast("Login cancelled");return false}toast(String(e.message||e));return false}}
-function pgLogout(){state.pg=null;state.points=null;state.pgUser=null;sess.set("v3.pg",null);if(window.PGSignIn)window.PGSignIn.signOut();renderPgChip()}
-async function loadPgUser(){if(!state.pg)return null;
-  try{const r=await fetch("https://api.account.pentagon.games/user/info",{headers:{Authorization:"Bearer "+state.pg}});if(r.ok){const j=await r.json();state.pgUser=(j&&j.result)||null}}catch(e){}
-  return state.pgUser}
-/* After Pentagon sign-in: show the account in the top bar and, if no wallet is connected, load the account's wallet (its NFTs + linked wallets). */
-async function afterPgSignIn(){await Promise.all([loadPoints(),loadPgUser()]);renderPgChip();
-  const mm=state.pgUser&&state.pgUser.mm_address;if(!state.wallet&&mm&&/^0x[a-fA-F0-9]{40}$/.test(mm))setWallet(mm)}
-function renderPgChip(){const b=$("btnPg");if(!b)return;b.hidden=false;
-  if(!state.pg){b.textContent="Sign in";b.title="Sign in with your Pentagon account (Points, linked wallets)";return}
-  const P=state.points,u=state.pgUser;const name=(u&&u.username)||"Signed in";
-  b.innerHTML=`<span class="dot"></span>${esc(name)}${P&&!P.error?` · ${fmt(P.npc_points)} Points`:""}`;b.title="Signed in with Pentagon. Click to sign out."}
+function pgLogin(){const c=PCC();if(c&&c.signIn){c.signIn();return true}toast("Sign-in is still loading. Try again in a moment.");return false}
+/* Runs on pill changes, pg:auth and cross-tab storage events: pick up sign-in/sign-out, read Points, load the account wallet. */
+let pgBusy=false;
+async function onPgAuth(){const t=pgSiteToken();if(pgBusy||(t===state.pg&&(state.points||!t)))return;pgBusy=true;
+  try{state.pg=t;state.points=null;
+    if(t){await loadPoints();const mm=state.points&&state.points.mm_address;
+      if(!state.wallet&&mm&&/^0x[a-fA-F0-9]{40}$/.test(mm)){state.walletSrc="account";setWallet(mm)}}
+    if(!$("sheet").hidden&&state.qsTeam)quickStart(state.qsTeam)}
+  finally{pgBusy=false}}
+window.addEventListener("pg:auth",()=>setTimeout(onPgAuth,50));
+window.addEventListener("storage",e=>{if(!e||e.key==="pg_token"||e.key===null)onPgAuth()});
 async function pcRpc(method,params){const r=await fetch(PC_RPC,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method,params})});const j=await r.json();if(j.error)throw new Error(j.error.message||"rpc");return j.result}
 async function tierFee(k){const T=TIERS[k];if(!T.feeSel)return 0n;const r=await pcRpc("eth_call",[{to:MINING_ADDR,data:T.feeSel},"latest"]);return BigInt(r)}
 const nftBody=(team)=>team.map(n=>({contract_address:n.contract_address,token_id:String(n.token_id),chain_id:n.chain_id||3344}));
@@ -1014,17 +1001,17 @@ function setWallet(w){state.wallet=w;document.body.classList.toggle("has-wallet"
   $("wDot").hidden=!w;$("wLabel").textContent=w?"Connected":"Connect wallet";$("wAddr").textContent=w?short(w):"";$("vaultAddr").value=w||"";
   state.mine=null;state.lastPart=undefined;
   if(w){loadMyStatus(w);ensureMine(w);const v=(location.hash||"#mine").slice(1);if(v==="vault")loadVault(w);if(v==="rewards"){loaded.rewards=1;loadRewards(w)}}else{$("myStatus").innerHTML='<div class="empty">Connect a wallet to see your round status, hashrate and share of blocks.</div>';state.myStatus=null;updateOdds();paintArt()}}
-async function connect(){if(state.wallet){setWallet(null);toast("Disconnected");return}
+async function connect(){if(!document.body.classList.contains("embed")&&window.PCConnector&&window.PCConnector.connect){window.PCConnector.connect();return}
+  if(state.wallet){setWallet(null);toast("Disconnected");return}
   if(window.ethereum){try{const acc=await window.ethereum.request({method:"eth_requestAccounts"});if(acc&&acc[0]){setWallet(acc[0]);toast("Connected "+short(acc[0]));return}}catch(e){toast("Wallet request rejected")}}
-  const a=prompt("No wallet extension found. Paste an address to view (read-only):");if(a&&/^0x[a-fA-F0-9]{40}$/.test(a.trim())){setWallet(a.trim());toast("Viewing "+short(a.trim()))}}
+  const a=prompt("No wallet extension found. Paste an address to view (read-only):");if(a&&/^0x[a-fA-F0-9]{40}$/.test(a.trim())){state.walletSrc="manual";setWallet(a.trim());toast("Viewing "+short(a.trim()))}}
 $("btnWallet").addEventListener("click",connect);
-$("btnPg").addEventListener("click",()=>{if(state.pg){if(confirm("Sign out of your Pentagon account on this site?")){pgLogout();toast("Signed out")}return}pgLogin()});
-/* PC Connector 1.0.0 treats *.pentagon.games as pentagon.games and links "Sign in" to the full web wallet with ?continue=mine-v3,
-   which strands users there. Until connector 1.0.1 (client pg-mining) ships, open the Pentagon sign-in pop-up instead. */
-document.addEventListener("click",e=>{const a=(e.composedPath?e.composedPath():[e.target]).find(n=>n&&n.tagName==="A"&&/\/pgai\/web-local-app\//.test(n.getAttribute("href")||""));
-  if(!a||!window.PGSignIn||document.body.classList.contains("embed"))return;e.preventDefault();e.stopPropagation();pgLogin()},true);
-if(state.pg)afterPgSignIn();else renderPgChip();
-(function hookPCC(tries){if(window.PCConnector&&window.PCConnector.onChange){document.body.classList.add("pcc-on");window.PCConnector.onChange(function(s){var a=s&&s.account;if(a&&/^0x[a-fA-F0-9]{40}$/.test(a)&&(!state.wallet||state.wallet.toLowerCase()!==a.toLowerCase())&&!document.body.classList.contains("embed")){if(!state.wallet)setWallet(a)}})}else if(tries<40)setTimeout(function(){hookPCC(tries+1)},250)})(0);
+(function hookPCC(tries){if(window.PCConnector&&window.PCConnector.onChange){document.body.classList.add("pcc-on");
+    window.PCConnector.onChange(function(st){if(document.body.classList.contains("embed"))return;var a=st&&st.account;
+      if(a&&/^0x[a-fA-F0-9]{40}$/.test(a)){if(!state.wallet||(state.walletSrc!=="manual"&&state.wallet.toLowerCase()!==a.toLowerCase())){state.walletSrc="pill";setWallet(a)}}
+      else if(!a&&state.walletSrc==="pill"&&state.wallet){setWallet(null)}
+      onPgAuth()});onPgAuth()}
+  else if(tries<40)setTimeout(function(){hookPCC(tries+1)},250);else onPgAuth()})(0);
 $("btnLegacy").addEventListener("click",()=>window.open(V2_APP,"_blank","noopener"));
 $("btnBoost").addEventListener("click",()=>{const v=state.vault;const sel=v?v.nfts.filter(n=>state.sel.has(n.id)):[];if(!state.wallet){connect();return}if(!state.mine&&v)state.mine={all:v.nfts.slice().sort(byHr),enrolled:new Set()};quickStart(sel.sort(byHr).slice(0,9))});
 document.querySelectorAll(".net button").forEach(b=>b.addEventListener("click",()=>{if(b.dataset.net==="eth"){location.hash="#ethereum";toast("Ethereum mining is in design. Read the plan.")}}));
@@ -1139,7 +1126,6 @@ boot();
 })();
 </script>
 <!-- PC Connector, pinned: this page signs mining transactions, so load the immutable build with SRI -->
-<script src="https://pentagon.games/pgai/web-local-app/pg-signin.js" data-client-id="pg-mining" defer></script>
-<script src="https://pentagon.games/connector/pc-connector-1.0.0.js" integrity="sha384-JveoneOHsCgtoP8rOJXkgtn5iVwIMiwgO7ELTVYhugnOgnYetIM4ALMEm/e9gj3V" crossorigin="anonymous" defer></script>
+<script src="https://pentagon.games/connector/pc-connector-1.0.3.js" data-client-id="pg-mining" integrity="sha384-AJK/aM1yQ2+Y+dIeNdePWL2+S6ucFKvfcjb+HyU4pkmPVQJWy68y9yLdG+mCpzns" crossorigin="anonymous" defer></script>
 </body>
 </html>
