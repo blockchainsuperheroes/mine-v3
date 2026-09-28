@@ -448,7 +448,7 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
           <div class="card" id="gdPreview">
             <p style="margin:0 0 10px;color:var(--muted);font-size:13.5px">Green Day returns as a reward for winning. When a paid boost wins a block, the winner gets the block's NFC and a Green Day PC payout on Ethereum, settled once a day at 00:00 UTC. One win, two rewards.</p>
             <div class="kv"><div>Proposed payout per paid win</div><div>0.01 PC</div><div>Blocks per day</div><div>72</div><div>Your expected wins / day</div><div id="gdWins">—</div><div>Your expected Green Day / day</div><div id="gdPc">—</div></div>
-            <p class="hint" style="margin-bottom:0">Estimate uses your current hashrate against the live network. Final amount is set at launch. <a href="/greenday" target="_blank" rel="noopener">Why the old Green Day ended</a>.</p>
+            <p class="hint" style="margin-bottom:0">Estimate uses your current hashrate against the live network. Final amount is set at launch. <a href="https://mine.pentagon.games/greenday" target="_blank" rel="noopener">Why the old Green Day ended</a>.</p>
           </div>
           <h2 style="margin-top:18px">Collections winning today</h2>
           <div class="card" id="colStats"><div class="sk">loading</div></div>
@@ -875,7 +875,7 @@ function quickStart(teamIn){const t=teamPick();const team=(teamIn&&teamIn.length
   if(state.pg&&!state.points)loadPoints().then(()=>{if(!$("sheet").hidden)quickStart(teamIn)})}
 function pointsBlock(team,net){if(document.body.classList.contains("embed"))return"";
   const head=`<div class="eyebrow" style="margin-top:14px">Pay with Points</div>`;
-  if(!state.pg)return head+`<p class="hint">Points boosts use your upgraded Pentagon account. <button class="btn sm ghost" type="button" id="qsLogin">Log in to use Points</button></p>`;
+  if(!state.pg)return head+`<p class="hint">Points boosts use your upgraded Pentagon account. <button class="btn sm ghost" type="button" id="qsLogin">Sign in with Pentagon</button></p>`;
   const P=state.points;if(!P)return head+`<p class="hint">Loading your Points…</p>`;
   if(P.error)return head+`<p class="hint">Couldn't load your Points right now. <button class="btn sm ghost" type="button" id="qsLogout">Log out</button></p>`;
   const bal=`<b>${fmt(P.npc_points)}</b> Points`;
@@ -898,20 +898,27 @@ const TIERS={offchain:{label:"Free · 4 hours",sub:"0.25× hashrate, no transact
   pts_boosted_7d:{label:"Points boost · 7 days",sub:"5× hashrate",mult:5,tx:null,feeSel:null,mode:"boosted_7d",points:"boosted_7d"}};
 /* ---------- PG login + Points (AA2 accounts only) ---------- */
 const sess={get(k){try{return sessionStorage.getItem(k)}catch(e){return null}},set(k,v){try{v?sessionStorage.setItem(k,v):sessionStorage.removeItem(k)}catch(e){}}};
-state.pg=sess.get("v3.pg")||null;state.points=null;
+/* Sign in with Pentagon (pg-signin.js, client pg-mining): pop-up on this site, overlay on pentagon.games. The login token lands in
+   localStorage.pg_token on this origin; it is sent only as Bearer to our API, which forwards it to identity. Wallet-signature login is the fallback. */
+function pgSiteToken(){try{return localStorage.getItem("pg_token")}catch(e){return null}}
+state.pg=pgSiteToken()||sess.get("v3.pg")||null;state.points=null;
 async function loadPoints(){if(!state.pg){state.points=null;return null}
   try{const r=await fetch(API+"/npc/points",{headers:{Authorization:"Bearer "+state.pg}});
-    if(r.status===401){state.pg=null;sess.set("v3.pg",null);state.points=null;return null}
+    if(r.status===401){state.pg=null;sess.set("v3.pg",null);state.points=null;if(window.PGSignIn)window.PGSignIn.signOut();return null}
     if(!r.ok)throw new Error("HTTP "+r.status);state.points=await r.json()}catch(e){state.points={error:true}}
   return state.points}
-async function pgLogin(){if(!window.ethereum){toast("Open this page in a browser with a wallet extension to log in");return false}
+async function pgLogin(){
+  if(window.PGSignIn){try{const r=await window.PGSignIn.open();
+      if(!(r&&r.ok)){if(r&&r.reason==="popup-blocked")toast("Your browser blocked the sign-in window. Allow pop-ups for this site and click again.");return false}
+      state.pg=r.token||window.PGSignIn.token();await loadPoints();toast("Signed in");return true}catch(e){toast("Sign-in unavailable. Try again.");return false}}
+  if(!window.ethereum){toast("Open this page in a browser with a wallet extension to log in");return false}
   try{const acc=(((await window.ethereum.request({method:"eth_requestAccounts"}))||[])[0]||"").toLowerCase();if(!acc)return false;
     const msg=`Logging into Pentagon Games,${Math.floor(Date.now()/1000)}`;
     const sig=await window.ethereum.request({method:"personal_sign",params:[msg,acc]});
     const j=await apiPost("/auth/wallet_login",{address:acc,message:msg,signature:sig});
     state.pg=j.access_token;sess.set("v3.pg",state.pg);await loadPoints();toast("Logged in");return true}
   catch(e){if(e&&e.code===4001){toast("Login cancelled");return false}toast(String(e.message||e));return false}}
-function pgLogout(){state.pg=null;state.points=null;sess.set("v3.pg",null)}
+function pgLogout(){state.pg=null;state.points=null;sess.set("v3.pg",null);if(window.PGSignIn)window.PGSignIn.signOut()}
 async function pcRpc(method,params){const r=await fetch(PC_RPC,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({jsonrpc:"2.0",id:1,method,params})});const j=await r.json();if(j.error)throw new Error(j.error.message||"rpc");return j.result}
 async function tierFee(k){const T=TIERS[k];if(!T.feeSel)return 0n;const r=await pcRpc("eth_call",[{to:MINING_ADDR,data:T.feeSel},"latest"]);return BigInt(r)}
 const nftBody=(team)=>team.map(n=>({contract_address:n.contract_address,token_id:String(n.token_id),chain_id:n.chain_id||3344}));
@@ -1032,7 +1039,7 @@ $("selAll").addEventListener("click",()=>{vaultFiltered().forEach(n=>state.sel.a
 async function loadRewards(w){const tb=$("rwTable").querySelector("tbody");tb.innerHTML='<tr><td colspan="2" class="sk">loading</td></tr>';
   try{const r=await get("/rewards?wallet_address="+w,20000);const rows=(r.rewards||[]).sort((a,b)=>b.total_amount-a.total_amount);tb.innerHTML=rows.length?rows.map(x=>`<tr><td><b>${esc(x.symbol)}</b></td><td class="num">${fmt(x.total_amount,x.total_amount<1?4:2)}</td></tr>`).join(""):'<tr><td colspan="2" class="empty">No rewards yet.</td></tr>'}catch(e){tb.innerHTML='<tr><td colspan="2" class="empty">Unavailable.</td></tr>'}
   try{const b=await get("/blocks?limit=8&winner_wallet="+w,20000);$("rwWins").innerHTML=b.items.length?b.items.map(x=>`<div class="row"><div class="n">#${fmt(x.block_no)}</div><div><div class="who">${fmt(x.winner_hashrate)} HR · ${(100*x.winner_hashrate/Math.max(1,x.total_hashrate)).toFixed(2)}% share</div><div class="meta"><span>${ago(x.created_at)}</span><span>${fmt(x.total_miners)} miners</span></div></div><div class="amt">${(x.rewards||[]).filter(r=>r.symbol==="NFC").map(r=>fmt(r.amount)+" NFC")[0]||"—"}<small>${x.reward_tx_hash?`<a href="${EXPLORER}/tx/0x${x.reward_tx_hash}" target="_blank" rel="noopener">tx</a>`:""}</small></div></div>`).join(""):'<div class="empty">No wins recorded for this wallet yet.</div>'}catch(e){$("rwWins").innerHTML='<div class="empty">Unavailable.</div>'}
-  try{const g=await get("/green-day/wallet/"+w,20000);const n=g.total_received??g.total_pc??null;$("rwGreen").innerHTML=`<div class="kv"><div>Green Day payouts received</div><div>${g.count??g.total_days??g.green_days??"—"}</div><div>Total PC</div><div>${n!=null?fmt(n,4)+" PC":"—"}</div></div><p class="hint">The Green Day trial program has completed. <a href="/greenday" target="_blank" rel="noopener">Read the notice</a>. It returns as a reward for winning.</p>`}catch(e){$("rwGreen").innerHTML='<p class="hint">The Green Day trial program has completed. <a href="/greenday" target="_blank" rel="noopener">Read the notice</a>.</p>'}}
+  try{const g=await get("/green-day/wallet/"+w,20000);const n=g.total_received??g.total_pc??null;$("rwGreen").innerHTML=`<div class="kv"><div>Green Day payouts received</div><div>${g.count??g.total_days??g.green_days??"—"}</div><div>Total PC</div><div>${n!=null?fmt(n,4)+" PC":"—"}</div></div><p class="hint">The Green Day trial program has completed. <a href="https://mine.pentagon.games/greenday" target="_blank" rel="noopener">Read the notice</a>. It returns as a reward for winning.</p>`}catch(e){$("rwGreen").innerHTML='<p class="hint">The Green Day trial program has completed. <a href="https://mine.pentagon.games/greenday" target="_blank" rel="noopener">Read the notice</a>.</p>'}}
 
 /* ---------- blocks ---------- */
 async function loadBlocks(){const tb=$("blkTable").querySelector("tbody");tb.innerHTML='<tr><td colspan="9" class="sk">loading</td></tr>';$("blkPage").textContent="page "+state.blkPage;
@@ -1062,7 +1069,7 @@ $("lbFindMe").addEventListener("click",()=>{if(!state.wallet){toast("Connect a w
 /* ---------- pools ---------- */
 async function loadPools(){loadMega();
   try{const e=await get("/mega_events?limit=8",20000);$("plEvents").innerHTML=e.items.map(x=>`<div class="row"><div class="n">${x.event_type==="omega_payout"?'<span class="pill ore">OMEGA</span>':'<span class="pill sig">MEGA</span>'}</div><div><div class="who">${short(x.winner_wallet)}</div><div class="meta"><span>block #${fmt(x.block_no)}</span><span>${ago(x.created_at)}</span></div></div><div class="amt">${fmt(x.amount,2)} PC</div></div>`).join("")||'<div class="empty">No MEGA or OMEGA payouts yet.</div>'}catch(e){$("plEvents").innerHTML='<div class="empty">Unavailable.</div>'}
-  try{const s=await get("/green-day/stats",20000);$("plGreenStats").innerHTML=`<div class="kv"><div>Green Days distributed</div><div>${fmt(s.total_green_days)}</div><div>Total paid</div><div>${fmt(s.total_distributed_pc,2)} PC</div><div>Unique recipients</div><div>${fmt(s.unique_recipients)}</div><div>Last</div><div>${esc(s.last_green_day)}</div></div><p class="hint" style="margin-bottom:0">Trial program completed. <a href="/greenday" target="_blank" rel="noopener">Notice</a> · next: Green Day for block winners.</p>`}catch(e){$("plGreenStats").innerHTML='<div class="empty">—</div>'}
+  try{const s=await get("/green-day/stats",20000);$("plGreenStats").innerHTML=`<div class="kv"><div>Green Days distributed</div><div>${fmt(s.total_green_days)}</div><div>Total paid</div><div>${fmt(s.total_distributed_pc,2)} PC</div><div>Unique recipients</div><div>${fmt(s.unique_recipients)}</div><div>Last</div><div>${esc(s.last_green_day)}</div></div><p class="hint" style="margin-bottom:0">Trial program completed. <a href="https://mine.pentagon.games/greenday" target="_blank" rel="noopener">Notice</a> · next: Green Day for block winners.</p>`}catch(e){$("plGreenStats").innerHTML='<div class="empty">—</div>'}
   try{const h=await get("/green-day/history?limit=8",20000);const items=Array.isArray(h)?h:(h.items||h.green_days||[]);$("plGreen").innerHTML=items.map(x=>{const st=x.status==="completed"?'<span class="pill good">paid</span>':'<span class="pill crit">'+esc(x.status)+'</span>';return`<div class="row"><div class="n">${esc(x.date)}</div><div><div class="who">${fmt(x.recipient_count)} miners · ${fmt(x.amount_each,4)} PC each</div><div class="meta"><span>${x.skip_reason?esc(x.skip_reason.split(" - ")[0]):fmt(x.total_amount,4)+" PC total"}</span></div></div><div class="amt">${st}</div></div>`}).join("")}catch(e){}}
 
 /* ---------- halving chart ---------- */
@@ -1113,6 +1120,7 @@ boot();
 })();
 </script>
 <!-- PC Connector, pinned: this page signs mining transactions, so load the immutable build with SRI -->
+<script src="https://pentagon.games/pgai/web-local-app/pg-signin.js" data-client-id="pg-mining" defer></script>
 <script src="https://pentagon.games/connector/pc-connector-1.0.0.js" integrity="sha384-JveoneOHsCgtoP8rOJXkgtn5iVwIMiwgO7ELTVYhugnOgnYetIM4ALMEm/e9gj3V" crossorigin="anonymous" defer></script>
 </body>
 </html>
