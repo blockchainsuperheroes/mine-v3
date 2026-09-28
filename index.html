@@ -896,7 +896,7 @@ const TIERS={offchain:{label:"Free · 4 hours",sub:"0.25× hashrate, no transact
   pts_boosted_7d:{label:"Points boost · 7 days",sub:"5× hashrate",mult:5,tx:null,feeSel:null,mode:"boosted_7d",points:"boosted_7d"}};
 /* ---------- PG login + Points (AA2 accounts only) ---------- */
 const sess={get(k){try{return sessionStorage.getItem(k)}catch(e){return null}},set(k,v){try{v?sessionStorage.setItem(k,v):sessionStorage.removeItem(k)}catch(e){}}};
-/* PENTAGON-LOGIN-STANDARD: the PC Connector pill (pinned 1.0.3, client pg-mining) is the only login widget. It signs users in (popup),
+/* PENTAGON-LOGIN-STANDARD: the PC Connector pill (pinned 1.0.5, client pg-mining) is the only login widget. It signs users in (popup),
    shows Points and connects wallets. This page opens it with PCConnector.signIn(), signs out with PCConnector.signOut(), and hands it the
    Points it reads server-side (PCConnector.setPoints). The login token (localStorage.pg_token) goes only to our API as Bearer. */
 function pgSiteToken(){try{return localStorage.getItem("pg_token")}catch(e){return null}}
@@ -1126,6 +1126,6 @@ boot();
 })();
 </script>
 <!-- PC Connector, pinned: this page signs mining transactions, so load the immutable build with SRI -->
-<script src="https://pentagon.games/connector/pc-connector-1.0.3.js" data-client-id="pg-mining" integrity="sha384-AJK/aM1yQ2+Y+dIeNdePWL2+S6ucFKvfcjb+HyU4pkmPVQJWy68y9yLdG+mCpzns" crossorigin="anonymous" defer></script>
+<script src="https://pentagon.games/connector/pc-connector-1.0.5.js" data-client-id="pg-mining" integrity="sha384-slkwuouTm8k0gK998kPa/gMd0IAorJiLIhEF91BIHkQOncydS2mEUl26Tw5hzdIN" crossorigin="anonymous" defer></script>
 </body>
 </html>
