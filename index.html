@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
 <title>NFT Mining 3.0</title>
 <meta name="description" content="NFT Mining V3 interface on the live Pentagon Chain network. Your NFTs are the miners.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -402,6 +403,7 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
       <a class="halv-banner" id="halvBanner" href="#halving" hidden><span class="hb-k">Halving</span> in <b id="hbCd">—</b> · block reward drops to <b id="hbNext">—</b></a>
       <h1>Live network</h1>
       <p class="sub">Every 20 minutes one enrolled wallet wins the block, weighted by hashrate. Your NFTs are the miners.</p>
+      <p class="hint" id="sameAsV2" style="margin-top:6px"><b>New interface, same mining.</b> v3 runs on the same contract, backend and rules as v2: same blocks and rewards, the same 5× boosts, membership multipliers on boosts (Bronze Key ×2, Silver Shield ×3, Gold Crown ×4), the daily bonus collection, and the Ethan and Obelith perks. A session started in v2 shows here, and the other way round.</p>
       <div class="card raised hero">
         <div class="ring">
           <svg viewBox="0 0 120 120"><circle cx="60" cy="60" r="52" stroke="#24303f" stroke-width="8" fill="none"/><circle id="ringArc" cx="60" cy="60" r="52" stroke="#f0a04b" stroke-width="8" fill="none" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7"/></svg>
@@ -852,7 +854,14 @@ function teamPick(){const all=(state.mine&&state.mine.all)||[];const q=all.filte
   const bestBonus=q.find(isBonus);if(bestBonus&&!team.some(isBonus)){team=team.length<9?team.concat([bestBonus]):team.slice(0,8).concat([bestBonus])}
   const keys=new Set(team.map(keyOf));return{team,tail:q.filter(n=>!keys.has(keyOf(n))),hr:team.reduce((a,n)=>a+(n.hashrate||0),0)}}
 /* hashrate the generator will use this window: paid tiers multiply the whole team when it holds a bonus NFT; free tiers boost only the bonus NFTs */
-function effHr(team,T){const mult=(state.round&&state.round.daily_bonus&&state.round.daily_bonus.multiplier)||1;const base=team.reduce((a,n)=>a+(n.hashrate||0),0)*T.mult;
+/* Membership (VIP) perks: identical to v2. The multiplier applies to boosts and is applied by the backend; shown here so the numbers match. */
+const RANK_NAME={1:"Bronze Key",2:"Silver Shield",3:"Gold Crown"};
+function vipInfo(){const v=state.vip;if(!v||state.vipW!==state.wallet)return null;const t=v.effective_tier||0;
+  return{tier:t,mult:v.hashrate_multiplier||1,name:v.rank_name||RANK_NAME[t]||"",ethan:!!v.has_ethan,obelith:!!v.has_obelith}}
+async function loadVip(w){if(!w||state.vipW===w)return;try{const v=await get("/vip_status/"+w,45000);if(state.wallet!==w)return;state.vip=v;state.vipW=w;
+  if(!$("sheet").hidden&&$("qsGo")&&!$("qsGo").disabled)quickStart(state.qsTeam)}catch(e){}}
+function effHr(team,T){const v=vipInfo();const vm=v&&(T.mode==="boosted"||T.mode==="boosted_7d")?v.mult:1;return effHr0(team,T)*vm}
+function effHr0(team,T){const mult=(state.round&&state.round.daily_bonus&&state.round.daily_bonus.multiplier)||1;const base=team.reduce((a,n)=>a+(n.hashrate||0),0)*T.mult;
   if(!team.some(isBonus)||mult<=1)return base;if(T.mode==="boosted"||T.mode==="boosted_7d")return base*mult;
   const b=team.filter(isBonus).reduce((a,n)=>a+(n.hashrate||0),0)*T.mult;return base-b+b*mult}
 /* v2 rules carried over: a boost can't be stacked (paying again only restarts the clock); while a session is active you may update your
@@ -860,6 +869,7 @@ function effHr(team,T){const mult=(state.round&&state.round.daily_bonus&&state.r
    registered for the mining wallet (the vault that is loaded), never the payer. */
 const RANK={offchain:0,npc:1,onchain:2,boosted:3,boosted_7d:4};
 const TIER_NAME={offchain:"Free · 4 hours",npc:"Points · 8 hours",onchain:"Free on-chain · 8 hours",boosted:"Boost · 24 hours",boosted_7d:"Boost · 7 days",ethan_free:"Ethan free 7-day",obelisk_passive:"Obelisk passive"};
+function vipTxt(T){const v=vipInfo();return v&&v.tier&&(T.mode==="boosted"||T.mode==="boosted_7d")?` × ${v.mult} ${esc(v.name)}`:""}
 function activeSub(){const m=state.myStatus;if(!m||state.myStatusW!==state.wallet)return null;const sub=m.subscription;if(!sub)return null;
   const left=sub.time_remaining_seconds;if(!(left>0)||left>1e9)return null;const tier=sub.tier||sub.mode;if(!(tier in RANK))return null;return{tier,left}}
 function quickStart(teamIn){state.qsTeam=teamIn||null;const t=teamPick();const team=(teamIn&&teamIn.length?teamIn:t.team).slice(0,9);const hr=team.reduce((a,n)=>a+(n.hashrate||0),0);$("sheet").hidden=false;
@@ -868,18 +878,26 @@ function quickStart(teamIn){state.qsTeam=teamIn||null;const t=teamPick();const t
   const net=state.round?.participants?.total_hashrate||0;const sub=activeSub();const cur=sub?RANK[sub.tier]:-1;
   const allowed=k=>RANK[TIERS[k].mode]>=cur;
   const tierRow=(k)=>{const T=TIERS[k];const eff=effHr(team,T);const sh=net?100*eff/(net+eff):0;const tag=sub?(RANK[T.mode]>cur?" · upgrade":" · update team"):"";
-    return `<label class="tier-opt"><input type="radio" name="qsTier" value="${k}" ${!sub&&k==="boosted"?"checked":""}><span><b>${T.label}</b><small>${T.sub} · <span id="fee_${k}">${T.feeSel?"…":T.tx?"gas only":"free"}</span> · ≈ ${sh.toFixed(2)}% share${tag}</small></span></label>`};
+    return `<label class="tier-opt"><input type="radio" name="qsTier" value="${k}" ${!sub&&k==="boosted"?"checked":""}><span><b>${T.label}</b><small>${T.sub}${vipTxt(T)} · <span id="fee_${k}">${T.feeSel?"…":T.tx?"gas only":"free"}</span> · ≈ ${sh.toFixed(2)}% share${tag}</small></span></label>`};
   const w=state.wallet||"";const payer=state.payer||"";
   const who=w?`<p class="hint" style="margin-top:6px">Mining wallet: <b>${short(w)}</b>${state.walletSrc==="account"?" (your Pentagon account)":""}.${payer&&payer.toLowerCase()!==w.toLowerCase()?` Wallet-paid options are paid from <b>${short(payer)}</b>; any wallet can pay, the mining still counts for ${short(w)}.`:""}</p>`:"";
   const now=sub?`<div class="bonus-note ok">You're mining now: <b>${TIER_NAME[sub.tier]||sub.tier}</b>, ${dur(sub.left)} left. Boosts don't stack: paying again only restarts the clock. To change your team, pay this tier again (the free tier is free), or upgrade to a longer one. Shorter options return when this session ends.</div>`:"";
   const rows=["offchain","onchain","boosted","boosted_7d"].filter(allowed);
+  const vip=vipInfo();if(state.wallet&&state.vipW!==state.wallet)loadVip(state.wallet);
+  const member=!state.wallet?"":!vip?`<p class="hint" style="margin-top:6px">Checking your membership perks…</p>`
+    :`<p class="hint" style="margin-top:6px">Membership: ${vip.tier?`<b>${esc(vip.name)}</b>, boosts ×${vip.mult} on top of the 5× boost`:"no tier yet (boosts run at 5×)"}${vip.ethan?" · Ethan holder":""}${vip.obelith?" · Obelith holder":""}. Same perks as v2.</p>`;
+  const perkRow=k=>{const T=TIERS[k];const eff=effHr(team,T);const sh=net?100*eff/(net+eff):0;
+    return `<label class="tier-opt"><input type="radio" name="qsTier" value="${k}"><span><b>${T.label}</b><small>${T.sub} · ≈ ${sh.toFixed(2)}% share${sub?" · replaces your current session":""}</small></span></label>`};
+  const perks=vip?[vip.ethan?"ethan":null,vip.obelith?"obelisk":null].filter(Boolean):[];
+  const perkBlock=perks.length?`<div class="eyebrow" style="margin-top:14px">Holder perks</div><div class="tier-list">${perks.map(perkRow).join("")}</div>`:"";
   $("sheetBody").innerHTML=`<div class="eyebrow">${sub?"Update mining":"Start mining"}</div><div class="sheet-t" style="white-space:normal">Your team of ${team.length} · HR ${fmt(hr)}</div>
     <p class="hint" style="margin-top:6px">${teamIn&&teamIn.length?"Your selection from the vault.":"Picked by hashrate from everything in your vault."} ${tail?`You also hold ${tail} other qualifying NFTs: your tail, which will add up to +50% once the tail boost (MIP-0001) is live.`:""}</p>
-    ${who}
+    ${who}${member}
     <div class="team" style="margin:12px 0">${tiles}</div>
     ${now}${bonusNote(team)}
     <div class="tier-list">${rows.map(tierRow).join("")}</div>
     ${pointsBlock(team,net,sub)}
+    ${perkBlock}
     <div class="sheet-actions"><button class="btn primary" type="button" id="qsGo">${sub?"Update mining":"Start mining"}</button></div>
     <div class="qs-status" id="qsStatus" role="status"></div>`;
   ["boosted","boosted_7d"].forEach(async k=>{try{const f=await tierFee(k);const el=$("fee_"+k);if(el)el.textContent=fmt(Number(f)/1e18,2)+" PC"}catch(e){}});
@@ -887,7 +905,8 @@ function quickStart(teamIn){state.qsTeam=teamIn||null;const t=teamPick();const t
     if(!k){qsSay("Choose an option first.","warn");return}
     if(state.wallet&&state.myStatusW!==state.wallet){try{await loadMyStatus(state.wallet)}catch(e){}}
     const T=TIERS[k];let repay=false;const s2=activeSub();
-    if(s2&&RANK[T.mode]<=RANK[s2.tier]&&(T.points||T.feeSel)){
+    if(T.perk&&s2&&RANK[s2.tier]>=RANK.boosted&&!confirm(`You're mining on ${TIER_NAME[s2.tier]||s2.tier} (${dur(s2.left)} left).\n\n${T.label} would replace that session. Nothing is refunded.\n\nContinue?`))return;
+    if(!T.perk&&s2&&RANK[T.mode]<=RANK[s2.tier]&&(T.points||T.feeSel)){
       let cost="the fee";if(T.points){const c=((state.points&&state.points.tier_points)||{npc:1,boosted:20,boosted_7d:100})[T.points];cost=c+" Point"+(c===1?"":"s")}else{try{cost=fmt(Number(await tierFee(k))/1e18,2)+" PC"}catch(e){}}
       if(!confirm(`You're already mining (${TIER_NAME[s2.tier]||s2.tier}, ${dur(s2.left)} left).\n\nUpdating your team charges ${cost} again and restarts the clock. It does not add time.\n\nContinue?`))return;
       repay=true}
@@ -902,7 +921,7 @@ function pointsBlock(team,net,sub){if(document.body.classList.contains("embed"))
   if(!P.aa2_rail)return head+`<p class="hint">${P.migration_state==="aa2"?"Points boosts here are switching on soon.":"Points boosts on this page need your account upgrade, which is rolling out now. Wallet boosts above work today."}</p>`;
   const cost=P.tier_points||{npc:1,boosted:20,boosted_7d:100};const have=P.npc_points_aa2!=null?P.npc_points_aa2:P.npc_points;
   const row=k=>{const T=TIERS[k];const eff=effHr(team,T);const sh=net?100*eff/(net+eff):0;const c=cost[T.points];const ok=have>=c;
-    return `<label class="tier-opt"${ok?"":' style="opacity:.5"'}><input type="radio" name="qsTier" value="${k}" ${ok?"":"disabled"}><span><b>${T.label}</b><small>${T.sub} · ${fmt(c)} Point${c===1?"":"s"}${ok?"":" · not enough Points"} · ≈ ${sh.toFixed(2)}% share${sub?(RANK[T.mode]>cur?" · upgrade":" · update team"):""}</small></span></label>`};
+    return `<label class="tier-opt"${ok?"":' style="opacity:.5"'}><input type="radio" name="qsTier" value="${k}" ${ok?"":"disabled"}><span><b>${T.label}</b><small>${T.sub}${vipTxt(T)} · ${fmt(c)} Point${c===1?"":"s"}${ok?"":" · not enough Points"} · ≈ ${sh.toFixed(2)}% share${sub?(RANK[T.mode]>cur?" · upgrade":" · update team"):""}</small></span></label>`};
   return head+(P.balance_settling?`<p class="hint">Part of your balance is still moving to your upgraded account and becomes spendable in a few minutes.</p>`:"")+`<div class="tier-list">${["pts_npc","pts_boosted","pts_boosted_7d"].filter(k=>RANK[TIERS[k].mode]>=cur).map(row).join("")}</div>`}
 function bonusNote(team){const b=state.round&&state.round.daily_bonus;if(!b)return"";const ends=b.ends_at?new Date(b.ends_at):null;const until=ends?ends.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"}):"the end of this window";
   return team.some(isBonus)?`<div class="bonus-note ok">Your team holds a <b>${esc(b.collection_name)}</b>, today's bonus collection. On a boost your whole team mines ×${b.multiplier} until ${until}; on a free tier the bonus NFT gets ×${b.multiplier}. The bonus moves to another collection every 4 hours, so re-pick your team then to keep it.</div>`
@@ -913,6 +932,8 @@ const TIERS={offchain:{label:"Free · 4 hours",sub:"0.25× hashrate, no transact
   onchain:{label:"Free on-chain · 8 hours",sub:"1× hashrate",mult:1,tx:"0xb9cd1a3b",feeSel:null,mode:"onchain"},
   boosted:{label:"Boost · 24 hours",sub:"5× hashrate",mult:5,tx:"0x090f0baf",feeSel:"0xddca3f43",mode:"boosted"},
   boosted_7d:{label:"Boost · 7 days",sub:"5× hashrate",mult:5,tx:"0x60684b2b",feeSel:"0x9ba32a56",mode:"boosted_7d"},
+  ethan:{label:"Ethan free · 7 days",sub:"2× hashrate · free for Ethan holders",mult:2,tx:null,feeSel:null,mode:"ethan_free",perk:"/participate_ethan"},
+  obelisk:{label:"Obelith passive",sub:"0.5× hashrate · never expires · free for Obelith Setsuko holders",mult:.5,tx:null,feeSel:null,mode:"obelisk_passive",perk:"/participate_obelisk"},
   pts_npc:{label:"Points · 8 hours",sub:"1× hashrate",mult:1,tx:null,feeSel:null,mode:"npc",points:"npc"},
   pts_boosted:{label:"Points boost · 24 hours",sub:"5× hashrate",mult:5,tx:null,feeSel:null,mode:"boosted",points:"boosted"},
   pts_boosted_7d:{label:"Points boost · 7 days",sub:"5× hashrate",mult:5,tx:null,feeSel:null,mode:"boosted_7d",points:"boosted_7d"}};
@@ -955,6 +976,7 @@ async function startMiningV3(k,team,repay){const T=TIERS[k];const btn=$("qsGo");
   const w=state.wallet.toLowerCase();const nfts=nftBody(team);let done=false;btn.disabled=true;
   const finish=async(msg)=>{done=true;qsSay(msg,"ok");toast("Mining started");await loadMyStatus(w);ensureMine(w)};
   try{
+    if(T.perk){qsSay("Starting…");try{await apiPost(T.perk,{wallet_address:w,nfts,mode:T.mode});await finish(`⛏ Mining started: ${T.label.toLowerCase()}.`)}catch(e){qsSay(esc(String(e.message||e)),"warn")}return}
     if(T.points){if(!state.pg){qsSay("Log in to pay with Points.","warn");return}
       qsSay("Paying with Points from your Pentagon account…");
       try{const j=await apiPost("/participate",{wallet_address:w,nfts,mode:"npc",pay_with_npc:true,tier:T.points,points_rail:"aa2",repay:!!repay},state.pg);
@@ -1020,7 +1042,7 @@ async function loadMyStatus(w){try{const s=await get("/mining_status/"+w,20000);
   updateOdds()}catch(e){$("myStatus").innerHTML='<div class="empty">Could not load status.</div>'}}
 
 /* ---------- wallet ---------- */
-function setWallet(w){state.wallet=w;document.body.classList.toggle("has-wallet",!!w);state.vault=null;state.sel.clear();loaded.rewards=0;store.set("v3.wallet",w||"");
+function setWallet(w){state.wallet=w;if(w)setTimeout(()=>loadVip(w),0);document.body.classList.toggle("has-wallet",!!w);state.vault=null;state.sel.clear();loaded.rewards=0;store.set("v3.wallet",w||"");
   $("wDot").hidden=!w;$("wLabel").textContent=w?"Connected":"Connect wallet";$("wAddr").textContent=w?short(w):"";$("vaultAddr").value=w||"";
   state.mine=null;state.lastPart=undefined;
   if(w){loadMyStatus(w);ensureMine(w);const v=(location.hash||"#mine").slice(1);if(v==="vault")loadVault(w);if(v==="rewards"){loaded.rewards=1;loadRewards(w)}}else{$("myStatus").innerHTML='<div class="empty">Connect a wallet to see your round status, hashrate and share of blocks.</div>';state.myStatus=null;updateOdds();paintArt()}}
