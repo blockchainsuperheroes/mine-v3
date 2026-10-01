@@ -855,24 +855,46 @@ function teamPick(){const all=(state.mine&&state.mine.all)||[];const q=all.filte
 function effHr(team,T){const mult=(state.round&&state.round.daily_bonus&&state.round.daily_bonus.multiplier)||1;const base=team.reduce((a,n)=>a+(n.hashrate||0),0)*T.mult;
   if(!team.some(isBonus)||mult<=1)return base;if(T.mode==="boosted"||T.mode==="boosted_7d")return base*mult;
   const b=team.filter(isBonus).reduce((a,n)=>a+(n.hashrate||0),0)*T.mult;return base-b+b*mult}
+/* v2 rules carried over: a boost can't be stacked (paying again only restarts the clock); while a session is active you may update your
+   team by re-paying the same tier, or upgrade to a longer one; shorter tiers are hidden until it ends. Any wallet may pay; the session is
+   registered for the mining wallet (the vault that is loaded), never the payer. */
+const RANK={offchain:0,npc:1,onchain:2,boosted:3,boosted_7d:4};
+const TIER_NAME={offchain:"Free · 4 hours",npc:"Points · 8 hours",onchain:"Free on-chain · 8 hours",boosted:"Boost · 24 hours",boosted_7d:"Boost · 7 days",ethan_free:"Ethan free 7-day",obelisk_passive:"Obelisk passive"};
+function activeSub(){const m=state.myStatus;if(!m||state.myStatusW!==state.wallet)return null;const sub=m.subscription;if(!sub)return null;
+  const left=sub.time_remaining_seconds;if(!(left>0)||left>1e9)return null;const tier=sub.tier||sub.mode;if(!(tier in RANK))return null;return{tier,left}}
 function quickStart(teamIn){state.qsTeam=teamIn||null;const t=teamPick();const team=(teamIn&&teamIn.length?teamIn:t.team).slice(0,9);const hr=team.reduce((a,n)=>a+(n.hashrate||0),0);$("sheet").hidden=false;
   const tail=((state.mine&&state.mine.all)||[]).filter(n=>(n.hashrate||0)>0&&!team.some(m=>keyOf(m)===keyOf(n))).length;
   const tiles=team.map(n=>`<div class="team-nft${isBonus(n)?" bonus":""}"><img src="${nftImg(n)}" alt="" onerror="this.src=IMG_FALLBACK"><div><b>${esc(n.name||("#"+n.token_id))}</b><small>${esc(n.collection||"")} · ⚡ ${fmt(n.hashrate)}${isBonus(n)?" · bonus ×"+((state.round.daily_bonus||{}).multiplier||5):""}</small></div></div>`).join("");
-  const net=state.round?.participants?.total_hashrate||0;
-  const tierRow=(k)=>{const T=TIERS[k];const eff=effHr(team,T);const sh=net?100*eff/(net+eff):0;return `<label class="tier-opt"><input type="radio" name="qsTier" value="${k}" ${k==="boosted"?"checked":""}><span><b>${T.label}</b><small>${T.sub} · <span id="fee_${k}">${T.feeSel?"…":T.tx?"gas only":"free"}</span> · ≈ ${sh.toFixed(2)}% share</small></span></label>`};
-  $("sheetBody").innerHTML=`<div class="eyebrow">Start mining</div><div class="sheet-t" style="white-space:normal">Your team of ${team.length} · HR ${fmt(hr)}</div>
+  const net=state.round?.participants?.total_hashrate||0;const sub=activeSub();const cur=sub?RANK[sub.tier]:-1;
+  const allowed=k=>RANK[TIERS[k].mode]>=cur;
+  const tierRow=(k)=>{const T=TIERS[k];const eff=effHr(team,T);const sh=net?100*eff/(net+eff):0;const tag=sub?(RANK[T.mode]>cur?" · upgrade":" · update team"):"";
+    return `<label class="tier-opt"><input type="radio" name="qsTier" value="${k}" ${!sub&&k==="boosted"?"checked":""}><span><b>${T.label}</b><small>${T.sub} · <span id="fee_${k}">${T.feeSel?"…":T.tx?"gas only":"free"}</span> · ≈ ${sh.toFixed(2)}% share${tag}</small></span></label>`};
+  const w=state.wallet||"";const payer=state.payer||"";
+  const who=w?`<p class="hint" style="margin-top:6px">Mining wallet: <b>${short(w)}</b>${state.walletSrc==="account"?" (your Pentagon account)":""}.${payer&&payer.toLowerCase()!==w.toLowerCase()?` Wallet-paid options are paid from <b>${short(payer)}</b>; any wallet can pay, the mining still counts for ${short(w)}.`:""}</p>`:"";
+  const now=sub?`<div class="bonus-note ok">You're mining now: <b>${TIER_NAME[sub.tier]||sub.tier}</b>, ${dur(sub.left)} left. Boosts don't stack: paying again only restarts the clock. To change your team, pay this tier again (the free tier is free), or upgrade to a longer one. Shorter options return when this session ends.</div>`:"";
+  const rows=["offchain","onchain","boosted","boosted_7d"].filter(allowed);
+  $("sheetBody").innerHTML=`<div class="eyebrow">${sub?"Update mining":"Start mining"}</div><div class="sheet-t" style="white-space:normal">Your team of ${team.length} · HR ${fmt(hr)}</div>
     <p class="hint" style="margin-top:6px">${teamIn&&teamIn.length?"Your selection from the vault.":"Picked by hashrate from everything in your vault."} ${tail?`You also hold ${tail} other qualifying NFTs: your tail, which will add up to +50% once the tail boost (MIP-0001) is live.`:""}</p>
+    ${who}
     <div class="team" style="margin:12px 0">${tiles}</div>
-    ${bonusNote(team)}
-    <div class="tier-list">${["offchain","onchain","boosted","boosted_7d"].map(tierRow).join("")}</div>
-    ${pointsBlock(team,net)}
-    <div class="sheet-actions"><button class="btn primary" type="button" id="qsGo">Start mining</button></div>
+    ${now}${bonusNote(team)}
+    <div class="tier-list">${rows.map(tierRow).join("")}</div>
+    ${pointsBlock(team,net,sub)}
+    <div class="sheet-actions"><button class="btn primary" type="button" id="qsGo">${sub?"Update mining":"Start mining"}</button></div>
     <div class="qs-status" id="qsStatus" role="status"></div>`;
   ["boosted","boosted_7d"].forEach(async k=>{try{const f=await tierFee(k);const el=$("fee_"+k);if(el)el.textContent=fmt(Number(f)/1e18,2)+" PC"}catch(e){}});
-  $("qsGo").addEventListener("click",()=>{const k=(document.querySelector('input[name="qsTier"]:checked')||{}).value||"boosted";startMiningV3(k,team)});
+  $("qsGo").addEventListener("click",async()=>{const k=(document.querySelector('input[name="qsTier"]:checked')||{}).value;
+    if(!k){qsSay("Choose an option first.","warn");return}
+    if(state.wallet&&state.myStatusW!==state.wallet){try{await loadMyStatus(state.wallet)}catch(e){}}
+    const T=TIERS[k];let repay=false;const s2=activeSub();
+    if(s2&&RANK[T.mode]<=RANK[s2.tier]&&(T.points||T.feeSel)){
+      let cost="the fee";if(T.points){const c=((state.points&&state.points.tier_points)||{npc:1,boosted:20,boosted_7d:100})[T.points];cost=c+" Point"+(c===1?"":"s")}else{try{cost=fmt(Number(await tierFee(k))/1e18,2)+" PC"}catch(e){}}
+      if(!confirm(`You're already mining (${TIER_NAME[s2.tier]||s2.tier}, ${dur(s2.left)} left).\n\nUpdating your team charges ${cost} again and restarts the clock. It does not add time.\n\nContinue?`))return;
+      repay=true}
+    startMiningV3(k,team,repay)});
   const lg=$("qsLogin");if(lg)lg.addEventListener("click",()=>pgLogin());
   if(state.pg&&!state.points)loadPoints().then(()=>{if(!$("sheet").hidden)quickStart(teamIn)})}
-function pointsBlock(team,net){if(document.body.classList.contains("embed"))return"";
+function pointsBlock(team,net,sub){if(document.body.classList.contains("embed"))return"";const cur=sub?RANK[sub.tier]:-1;
   const head=`<div class="eyebrow" style="margin-top:14px">Pay with Points</div>`;
   if(!state.pg)return head+`<p class="hint">Points boosts use your Pentagon account. <button class="btn sm ghost" type="button" id="qsLogin">Log in</button></p>`;
   const P=state.points;if(!P)return head+`<p class="hint">Loading your account…</p>`;
@@ -880,8 +902,8 @@ function pointsBlock(team,net){if(document.body.classList.contains("embed"))retu
   if(!P.aa2_rail)return head+`<p class="hint">${P.migration_state==="aa2"?"Points boosts here are switching on soon.":"Points boosts on this page need your account upgrade, which is rolling out now. Wallet boosts above work today."}</p>`;
   const cost=P.tier_points||{npc:1,boosted:20,boosted_7d:100};const have=P.npc_points_aa2!=null?P.npc_points_aa2:P.npc_points;
   const row=k=>{const T=TIERS[k];const eff=effHr(team,T);const sh=net?100*eff/(net+eff):0;const c=cost[T.points];const ok=have>=c;
-    return `<label class="tier-opt"${ok?"":' style="opacity:.5"'}><input type="radio" name="qsTier" value="${k}" ${ok?"":"disabled"}><span><b>${T.label}</b><small>${T.sub} · ${fmt(c)} Point${c===1?"":"s"}${ok?"":" · not enough Points"} · ≈ ${sh.toFixed(2)}% share</small></span></label>`};
-  return head+(P.balance_settling?`<p class="hint">Part of your balance is still moving to your upgraded account and becomes spendable in a few minutes.</p>`:"")+`<div class="tier-list">${["pts_npc","pts_boosted","pts_boosted_7d"].map(row).join("")}</div>`}
+    return `<label class="tier-opt"${ok?"":' style="opacity:.5"'}><input type="radio" name="qsTier" value="${k}" ${ok?"":"disabled"}><span><b>${T.label}</b><small>${T.sub} · ${fmt(c)} Point${c===1?"":"s"}${ok?"":" · not enough Points"} · ≈ ${sh.toFixed(2)}% share${sub?(RANK[T.mode]>cur?" · upgrade":" · update team"):""}</small></span></label>`};
+  return head+(P.balance_settling?`<p class="hint">Part of your balance is still moving to your upgraded account and becomes spendable in a few minutes.</p>`:"")+`<div class="tier-list">${["pts_npc","pts_boosted","pts_boosted_7d"].filter(k=>RANK[TIERS[k].mode]>=cur).map(row).join("")}</div>`}
 function bonusNote(team){const b=state.round&&state.round.daily_bonus;if(!b)return"";const ends=b.ends_at?new Date(b.ends_at):null;const until=ends?ends.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"}):"the end of this window";
   return team.some(isBonus)?`<div class="bonus-note ok">Your team holds a <b>${esc(b.collection_name)}</b>, today's bonus collection. On a boost your whole team mines ×${b.multiplier} until ${until}; on a free tier the bonus NFT gets ×${b.multiplier}. The bonus moves to another collection every 4 hours, so re-pick your team then to keep it.</div>`
     :`<div class="bonus-note">Bonus collection until ${until}: <b>${esc(b.collection_name)}</b> ×${b.multiplier}. You don't hold one, so this team mines without it. Adding any ${esc(b.collection_name)} NFT would multiply a boosted team ×${b.multiplier}.</div>`}
@@ -914,8 +936,10 @@ let pgBusy=false;
 async function onPgAuth(){const t=pgSiteToken();if(pgBusy||(t===state.pg&&(state.points||!t)))return;pgBusy=true;
   try{state.pg=t;state.points=null;
     if(t){await loadPoints();const mm=state.points&&state.points.mm_address;
-      if(!state.wallet&&mm&&/^0x[a-fA-F0-9]{40}$/.test(mm)){state.walletSrc="account";setWallet(mm)}}
-    if(!$("sheet").hidden&&state.qsTeam)quickStart(state.qsTeam)}
+      if(mm&&/^0x[a-fA-F0-9]{40}$/.test(mm)&&state.walletSrc!=="manual"&&(!state.wallet||state.wallet.toLowerCase()!==mm.toLowerCase())){state.walletSrc="account";setWallet(mm)}
+      else if(mm&&state.wallet&&state.wallet.toLowerCase()===mm.toLowerCase())state.walletSrc="account"}
+    else if(state.walletSrc==="account"){const a=state.payer;if(a){state.walletSrc="pill";setWallet(a)}else{state.walletSrc=null;setWallet(null)}}
+    if(!$("sheet").hidden&&$("qsGo")&&!$("qsGo").disabled)quickStart(state.qsTeam)}
   finally{pgBusy=false}}
 window.addEventListener("pg:auth",()=>setTimeout(onPgAuth,50));
 window.addEventListener("storage",e=>{if(!e||e.key==="pg_token"||e.key===null)onPgAuth()});
@@ -925,36 +949,35 @@ const nftBody=(team)=>team.map(n=>({contract_address:n.contract_address,token_id
 async function apiPost(path,body,token){const h={"Content-Type":"application/json"};if(token)h.Authorization="Bearer "+token;const r=await fetch(API+path,{method:"POST",headers:h,body:JSON.stringify(body)});let j={};try{j=await r.json()}catch(e){}if(!r.ok)throw new Error((j&&(j.detail&&j.detail.message||j.detail))||("HTTP "+r.status));return j}
 function qsSay(msg,kind){const el=$("qsStatus");if(el){el.className="qs-status "+(kind||"");el.innerHTML=msg}}
 async function registerTx(p){let last;for(let a=1;a<=5;a++){try{qsSay(`Registering your mining session… (attempt ${a}/5)`);return await apiPost("/participate_tx",{wallet_address:p.wallet,nfts:p.nfts,tx_hash:p.hash,chain_id:3344,mode:p.mode})}catch(e){last=e;await new Promise(r=>setTimeout(r,a*3000))}}throw last}
-async function startMiningV3(k,team){const T=TIERS[k];const btn=$("qsGo");
+async function startMiningV3(k,team,repay){const T=TIERS[k];const btn=$("qsGo");
   if(!state.wallet){connect();return}
   if(!team.length){qsSay("Pick at least one NFT with hashrate.","warn");return}
-  if(!window.ethereum){qsSay("Open this page in a browser with a wallet extension (MetaMask, Rabby) to start mining. Your NFTs never leave your wallet.","warn");return}
-  btn.disabled=true;
-  try{const acc=(((await window.ethereum.request({method:"eth_requestAccounts"}))||[])[0]||"").toLowerCase();
-    if(!acc){qsSay("Connect your wallet to continue.","warn");return}
-    if(acc!==state.wallet.toLowerCase()){qsSay(`Your wallet extension is on ${short(acc)}, but the vault loaded is ${short(state.wallet)}. Switch accounts in your wallet, or connect that wallet here.`,"warn");return}
-    const nfts=nftBody(team);
+  const w=state.wallet.toLowerCase();const nfts=nftBody(team);let done=false;btn.disabled=true;
+  const finish=async(msg)=>{done=true;qsSay(msg,"ok");toast("Mining started");await loadMyStatus(w);ensureMine(w)};
+  try{
     if(T.points){if(!state.pg){qsSay("Log in to pay with Points.","warn");return}
-      qsSay("Paying with Points from your upgraded account…");
-      try{const j=await apiPost("/participate",{wallet_address:acc,nfts,mode:"npc",pay_with_npc:true,tier:T.points,points_rail:"aa2"},state.pg);
-        const np=j.npc_payment||{};if(state.points&&np.remaining_npc!=null)state.points.npc_points=np.remaining_npc;
-        qsSay(`⛏ Mining started: ${T.label.toLowerCase()}. Paid ${fmt(np.cost_npc)} Point${np.cost_npc===1?"":"s"}${np.tx_hash?` · <a href="${EXPLORER}/tx/${np.tx_hash}" target="_blank" rel="noopener">${short(np.tx_hash)}</a>`:""}.`,"ok");
-        toast("Mining started");loadMyStatus(acc);ensureMine(acc)}
+      qsSay("Paying with Points from your Pentagon account…");
+      try{const j=await apiPost("/participate",{wallet_address:w,nfts,mode:"npc",pay_with_npc:true,tier:T.points,points_rail:"aa2",repay:!!repay},state.pg);
+        const np=j.npc_payment||{};if(state.points&&np.remaining_npc!=null){state.points.npc_points=np.remaining_npc;state.points.npc_points_aa2=np.remaining_npc;if(PCC()&&PCC().setPoints)PCC().setPoints(np.remaining_npc)}
+        await finish(`⛏ Mining started: ${T.label.toLowerCase()}. Paid ${fmt(np.cost_npc)} Point${np.cost_npc===1?"":"s"}${np.tx_hash?` · <a href="${EXPLORER}/tx/${np.tx_hash}" target="_blank" rel="noopener">${short(np.tx_hash)}</a>`:""}.`)}
       catch(e){qsSay(esc(String(e.message||e)),"warn")}
       return}
-    if(!T.tx){qsSay("Starting free mining…");await apiPost("/participate",{wallet_address:acc,nfts,mode:"offchain"});qsSay("⛏ Mining started on the free tier for 4 hours.","ok");toast("Mining started");loadMyStatus(acc);ensureMine(acc);return}
+    if(!T.tx){qsSay("Starting free mining…");await apiPost("/participate",{wallet_address:w,nfts,mode:"offchain"});await finish("⛏ Mining started on the free tier for 4 hours.");return}
+    if(!window.ethereum){qsSay("This option is paid from a wallet extension (PGAI Wallet, MetaMask, Rabby). Open this page in a browser that has one, or use Points or the free tier.","warn");return}
+    const payer=(((await window.ethereum.request({method:"eth_requestAccounts"}))||[])[0]||"").toLowerCase();
+    if(!payer){qsSay("Connect a wallet to pay for this option.","warn");return}
     try{await window.ethereum.request({method:"wallet_switchEthereumChain",params:[{chainId:"0xD10"}]})}catch(se){if(se.code===4902){await window.ethereum.request({method:"wallet_addEthereumChain",params:[{chainId:"0xD10",chainName:"Pentagon Chain",nativeCurrency:{name:"PC",decimals:18,symbol:"PC"},rpcUrls:["https://rpc.pentagon.games"],blockExplorerUrls:["https://explorer.pentagon.games/"]}]})}else throw se}
-    const fee=await tierFee(k);qsSay(`Confirm the ${T.label.toLowerCase()} transaction in your wallet…`);
-    let hash;try{hash=await window.ethereum.request({method:"eth_sendTransaction",params:[{from:acc,to:MINING_ADDR,data:T.tx,value:"0x"+fee.toString(16)}]})}
-    catch(e){if(e.code===4001){qsSay("Transaction cancelled. Nothing was charged.","warn");return}const m=String(e.message||e);if(/cooldown/i.test(m)){qsSay("This wallet already started an on-chain session in the last 24 hours (72 blocks). The contract allows one per wallet per day. Try again after it ends, or use the free tier.","warn");return}throw e}
-    const pending={wallet:acc,hash,mode:T.mode,nfts,ts:Date.now()};store.set("v3.pending",JSON.stringify(pending));
+    const fee=await tierFee(k);qsSay(`Confirm the ${T.label.toLowerCase()} transaction in your wallet…${payer!==w?` Paying from ${short(payer)}; the mining counts for ${short(w)}.`:""}`);
+    let hash;try{hash=await window.ethereum.request({method:"eth_sendTransaction",params:[{from:payer,to:MINING_ADDR,data:T.tx,value:"0x"+fee.toString(16)}]})}
+    catch(e){if(e.code===4001){qsSay("Transaction cancelled. Nothing was charged.","warn");return}const m=String(e.message||e);if(/cooldown/i.test(m)){qsSay(`The paying wallet ${short(payer)} already started an on-chain session in the last 24 hours (72 blocks). The contract allows one per paying wallet per day. Pay from another wallet, use Points, or try again after it ends.`,"warn");return}throw e}
+    const pending={wallet:w,payer,hash,mode:T.mode,nfts,ts:Date.now()};store.set("v3.pending",JSON.stringify(pending));
     qsSay(`Transaction sent <a href="${EXPLORER}/tx/${hash}" target="_blank" rel="noopener">${short(hash)}</a>. Waiting for confirmation… Do not pay again.`);
     let rc=null;for(let i=0;i<60&&!rc;i++){await new Promise(r=>setTimeout(r,3000));try{rc=await pcRpc("eth_getTransactionReceipt",[hash])}catch(e){}}
-    if(!rc){qsSay(`Still confirming. We saved your transaction and will finish registration automatically next time you open this page. Do not pay again. Tx ${short(hash)}.`,"warn");return}
+    if(!rc){done=true;qsSay(`Still confirming. We saved your transaction and will finish registration automatically next time you open this page. Do not pay again. Tx ${short(hash)}.`,"warn");return}
     if(rc.status!=="0x1"){store.set("v3.pending","");qsSay("The transaction was reverted on-chain, so no mining fee was taken (only gas). You can try again.","warn");return}
-    await registerTx(pending);store.set("v3.pending","");qsSay(`⛏ Mining started: ${T.label}. <a href="${EXPLORER}/tx/${hash}" target="_blank" rel="noopener">View transaction</a>`,"ok");toast("Mining started");loadMyStatus(acc);ensureMine(acc)}
+    await registerTx(pending);store.set("v3.pending","");await finish(`⛏ Mining started: ${T.label}. <a href="${EXPLORER}/tx/${hash}" target="_blank" rel="noopener">View transaction</a>`)}
   catch(e){qsSay("Mining couldn't start: "+esc(String(e.message||e))+". If you confirmed a payment, do not pay again: it is saved and will be registered automatically.","warn")}
-  finally{if(btn)btn.disabled=false}}
+  finally{if(btn){if(done){btn.disabled=true;btn.textContent="Mining started ✓"}else btn.disabled=false}}}
 async function healPending(){let p;try{p=JSON.parse(store.get("v3.pending")||"null")}catch(e){}if(!p||Date.now()-p.ts>86400000)return;
   try{const rc=await pcRpc("eth_getTransactionReceipt",[p.hash]);if(!rc)return;if(rc.status!=="0x1"){store.set("v3.pending","");return}await registerTx(p);store.set("v3.pending","");toast("Your earlier mining payment is now registered");if(state.wallet)loadMyStatus(state.wallet)}catch(e){}}
 $("cubeCta").addEventListener("click",()=>{const a=$("cubeCta").dataset.act;if(a==="connect")connect();else if(a==="vault")location.hash="#vault";else if(a==="quick")quickStart();else if(a==="retry"){state.mineErr=false;applyMiningState();ensureMine(state.wallet)}else if(a==="eth")location.hash="#ethereum";else window.open(V2_APP,"_blank","noopener")});
@@ -991,7 +1014,7 @@ function tick(){const r=state.round;if(!r)return;const elapsed=(Date.now()-state
 function updateOdds(){const r=state.round;const my=state.myStatus;if(!r||!my||!my.participating){$("mOdds").textContent=state.wallet?"not in round":"—";$("mOddsS").textContent=state.wallet?"enroll in the v2 app":"connect a wallet";return}
   const p=100*my.hashrate/Math.max(1,r.participants.total_hashrate);$("mOdds").textContent=p.toFixed(2)+"%";$("mOddsS").textContent="HR "+fmt(my.hashrate)+" of "+fmtHR(r.participants.total_hashrate)+" · ≈ "+(p*72/100).toFixed(2)+" blocks/day";
   const wins=p*72/100;const paid=["boosted","boosted_7d"].includes(my.mode||my.subscription?.mode);$("gdWins").textContent=wins.toFixed(2)+(paid?"":" (free tier, not eligible)");$("gdPc").textContent=paid?(wins*0.01).toFixed(4)+" PC":"0 PC until you boost"}
-async function loadMyStatus(w){try{const s=await get("/mining_status/"+w,20000);state.myStatus=s;const sub=s.subscription;
+async function loadMyStatus(w){try{const s=await get("/mining_status/"+w,20000);state.myStatus=s;state.myStatusW=w;const sub=s.subscription;
   const changed=state.lastPart!==!!s.participating;state.lastPart=!!s.participating;if(changed&&state.mine)paintArt();else applyMiningState();
   $("myStatus").innerHTML=`<div class="kv"><div>Status</div><div>${s.participating?'<span class="pill good">mining</span>':'<span class="pill crit">idle</span>'}</div><div>Mode</div><div>${esc(s.mode||sub?.mode||"—")}</div><div>Hashrate</div><div>${fmt(s.hashrate)}</div><div>NFTs enrolled</div><div>${fmt(s.nfts_selected)}</div><div>Round</div><div>#${fmt(s.round_id)}</div><div>Boost expires</div><div>${sub?.time_remaining_seconds>1e9?"never (passive)":dur(sub?.time_remaining_seconds)}</div></div><div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary sm" type="button" onclick="document.getElementById('cubeCta').dataset.act='quick';document.getElementById('cubeCta').click()">Start or boost mining</button><a class="btn sm" href="#vault">Open vault</a></div>`;
   updateOdds()}catch(e){$("myStatus").innerHTML='<div class="empty">Could not load status.</div>'}}
@@ -1007,9 +1030,12 @@ async function connect(){if(!document.body.classList.contains("embed")&&window.P
   const a=prompt("No wallet extension found. Paste an address to view (read-only):");if(a&&/^0x[a-fA-F0-9]{40}$/.test(a.trim())){state.walletSrc="manual";setWallet(a.trim());toast("Viewing "+short(a.trim()))}}
 $("btnWallet").addEventListener("click",connect);
 (function hookPCC(tries){if(window.PCConnector&&window.PCConnector.onChange){document.body.classList.add("pcc-on");
-    window.PCConnector.onChange(function(st){if(document.body.classList.contains("embed"))return;var a=st&&st.account;
-      if(a&&/^0x[a-fA-F0-9]{40}$/.test(a)){if(!state.wallet||(state.walletSrc!=="manual"&&state.wallet.toLowerCase()!==a.toLowerCase())){state.walletSrc="pill";setWallet(a)}}
-      else if(!a&&state.walletSrc==="pill"&&state.wallet){setWallet(null)}
+    window.PCConnector.onChange(function(st){if(document.body.classList.contains("embed"))return;var a=st&&st.account;a=a&&/^0x[a-fA-F0-9]{40}$/.test(a)?a:null;
+      var payerChanged=(state.payer||"")!==(a||"");state.payer=a;
+      if(state.pg&&state.walletSrc==="account"){/* signed in: the account wallet keeps mining; the connected wallet is only the payer */}
+      else if(a){if(!state.wallet||(state.walletSrc!=="manual"&&state.wallet.toLowerCase()!==a.toLowerCase())){state.walletSrc="pill";setWallet(a)}}
+      else if(state.walletSrc==="pill"&&state.wallet){setWallet(null)}
+      if(payerChanged&&!$("sheet").hidden&&$("qsGo")&&!$("qsGo").disabled)quickStart(state.qsTeam);
       onPgAuth()});onPgAuth()}
   else if(tries<40)setTimeout(function(){hookPCC(tries+1)},250);else onPgAuth()})(0);
 $("btnLegacy").addEventListener("click",()=>window.open(V2_APP,"_blank","noopener"));
