@@ -7,7 +7,8 @@
 <title>NFT Mining 3.0</title>
 <meta name="description" content="NFT Mining V3 interface on the live Pentagon Chain network. Your NFTs are the miners.">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&family=Inter:wght@400;500;600;700&family=Cormorant+Garamond:wght@500;600;700&family=Orbitron:wght@500;700&family=Chakra+Petch:wght@400;500;600&display=swap">
+<script>(function(){var T=["classic","market-dark","market-light","premium","cyber"],q=new URLSearchParams(location.search).get("theme"),t=null;try{t=localStorage.getItem("pg_theme")}catch(e){}if(q&&T.indexOf(q)>-1){t=q;try{localStorage.setItem("pg_theme",q)}catch(e){}}if(t&&t!=="classic"&&T.indexOf(t)>-1)document.documentElement.setAttribute("data-theme",t)})();</script>
 <style>
 :root{
   color-scheme:dark;
@@ -19,6 +20,38 @@
   --display:"Unbounded","Manrope",system-ui,sans-serif;--body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;--mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
   --rail:232px;--r:12px;
 }
+/* ---------- themes (shared with PFP Vault: html[data-theme], localStorage pg_theme, ?theme=) ---------- */
+html[data-theme="market-dark"]{color-scheme:dark;--bg:#0d0f13;--surface:#15181e;--raised:#1c2027;--line:#262b34;--line2:#323946;--ink:#f2f4f7;--muted:#8a93a3;--dim:#5d6676;--ore:#2f7cf6;--ore-ink:#fff;--ore-soft:rgba(47,124,246,.14);--signal:#7aa7ff;--signal-soft:rgba(122,167,255,.14);--display:"Inter",system-ui,sans-serif;--body:"Inter",system-ui,sans-serif;--r:12px}
+html[data-theme="market-light"]{color-scheme:light;--bg:#fff;--surface:#f6f7f9;--raised:#eef0f3;--line:#e3e6eb;--line2:#d4d9e1;--ink:#0f1218;--muted:#5f6878;--dim:#8a93a3;--ore:#1f6ae0;--ore-ink:#fff;--ore-soft:rgba(31,106,224,.10);--signal:#0e7c76;--signal-soft:rgba(14,124,118,.10);--good:#1e9b4f;--warn:#b7791f;--crit:#d14334;--good-soft:rgba(30,155,79,.10);--warn-soft:rgba(183,121,31,.12);--crit-soft:rgba(209,67,52,.10);--display:"Inter",system-ui,sans-serif;--body:"Inter",system-ui,sans-serif;--r:12px}
+html[data-theme="premium"]{color-scheme:light;--bg:#f5f1e8;--surface:#fffdf8;--raised:#faf6ee;--line:#d9d2c3;--line2:#c9bfac;--ink:#151515;--muted:#6b665c;--dim:#9a9384;--ore:#8c1c22;--ore-ink:#fffdf8;--ore-soft:rgba(140,28,34,.08);--signal:#a8874a;--signal-soft:rgba(168,135,74,.12);--good:#2f6b3f;--warn:#9a6a14;--crit:#8c1c22;--good-soft:rgba(47,107,63,.10);--warn-soft:rgba(154,106,20,.10);--crit-soft:rgba(140,28,34,.08);--display:"Cormorant Garamond",Georgia,serif;--body:"Inter",system-ui,sans-serif;--r:2px}
+html[data-theme="premium"] h1{font-weight:600;font-size:34px;letter-spacing:.005em}
+html[data-theme="premium"] h2,html[data-theme="premium"] h3{font-weight:600;font-size:20px;letter-spacing:.01em}
+html[data-theme="premium"] .wordmark{font-family:var(--display);font-size:19px;letter-spacing:.14em}
+html[data-theme="premium"] .pill{font-family:var(--body);letter-spacing:.1em;text-transform:uppercase;font-size:10px}
+html[data-theme="cyber"]{color-scheme:dark;--bg:#07060d;--surface:#100d1d;--raised:#171330;--line:#2a2350;--line2:#3a2f70;--ink:#e9f6ff;--muted:#8f86b8;--dim:#5e5689;--ore:#ff2bd6;--ore-ink:#07060d;--ore-soft:rgba(255,43,214,.14);--signal:#00e5ff;--signal-soft:rgba(0,229,255,.14);--good:#39ff88;--warn:#ffd23f;--crit:#ff3864;--good-soft:rgba(57,255,136,.12);--warn-soft:rgba(255,210,63,.12);--crit-soft:rgba(255,56,100,.12);--display:"Orbitron",system-ui,sans-serif;--body:"Chakra Petch",system-ui,sans-serif;--r:4px}
+html[data-theme="cyber"] body{background-image:linear-gradient(rgba(0,229,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(0,229,255,.035) 1px,transparent 1px);background-size:32px 32px}
+html[data-theme="cyber"] h1{text-shadow:0 0 18px rgba(255,43,214,.45);letter-spacing:.04em}
+html[data-theme="cyber"] .card{box-shadow:0 0 0 1px rgba(255,43,214,.06),0 0 28px rgba(0,229,255,.05)}
+html[data-theme="cyber"] .btn:hover,html[data-theme="cyber"] .wallet:hover{box-shadow:0 0 14px rgba(255,43,214,.45)}
+.theme-sel{font-size:12px;padding:5px 8px}
+/* ---------- Ethereum preview ---------- */
+.ep-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:space-between}
+.ep-head h2{margin:0}
+.ep-stats{display:grid;gap:10px;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin:12px 0}
+.ep-stats .k{font:600 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.ep-stats .v{font:700 18px var(--display);margin-top:4px}
+.ep-stats .s{font-size:12px;color:var(--muted)}
+.ep-grid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));margin-top:10px}
+.ep-col{display:flex;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:10px;min-width:0}
+.ep-col img{width:48px;height:48px;border-radius:var(--r);object-fit:cover;flex:none;background:var(--raised)}
+.ep-col .t{font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ep-col .d{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ep-col .hr{margin-left:auto;font:700 13px var(--mono);color:var(--ore);white-space:nowrap}
+.ep-col .pg{font:600 10px var(--mono);color:var(--signal);border:1px solid var(--signal);border-radius:5px;padding:0 4px;margin-left:6px}
+.ep-team{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}
+.ep-team img{width:44px;height:44px;border-radius:8px;object-fit:cover;border:1px solid var(--line2)}
+.ep-cta{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px}
+.ep-cta .btn[disabled]{opacity:.55;cursor:not-allowed}
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html,body{height:100%}
@@ -40,7 +73,7 @@ button{font:inherit;color:inherit}
 .wallet:hover{border-color:var(--ore)}
 .wallet .addr{font-family:var(--mono);font-size:12px}
 .wallet .ok{width:8px;height:8px;border-radius:50%;background:var(--good)}
-.ticker{grid-column:1/-1;display:flex;gap:0;overflow-x:auto;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0f151d,#0b0f14);scrollbar-width:none}
+.ticker{grid-column:1/-1;display:flex;gap:0;overflow-x:auto;border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--surface),var(--bg));scrollbar-width:none}
 .ticker::-webkit-scrollbar{display:none}
 .tk{display:flex;flex-direction:column;gap:1px;padding:9px 16px;border-right:1px solid var(--line);min-width:150px;white-space:nowrap}
 .tk .k{font:600 10px var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
@@ -48,7 +81,7 @@ button{font:inherit;color:inherit}
 .tk .v.ore{color:var(--ore)}.tk .v.sig{color:var(--signal)}
 .tk.live .k::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--good);margin-right:6px;animation:pulse 1.6s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
-.train{grid-column:1/-1;overflow:hidden;border-bottom:1px solid var(--line);background:linear-gradient(180deg,#0b0f14,#0d1218);padding:6px 0;display:grid;gap:6px}
+.train{grid-column:1/-1;overflow:hidden;border-bottom:1px solid var(--line);background:linear-gradient(180deg,var(--bg),var(--surface));padding:6px 0;display:grid;gap:6px}
 .lane-row{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:center;gap:10px;padding-left:14px}
 .lane-lbl{display:flex;flex-direction:column;gap:1px;min-width:200px;max-width:200px;color:var(--muted)}
 .lane-lbl b{font:700 11px var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -356,9 +389,10 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
     <div class="wordmark">NFTMINING <span class="v">v3</span></div>
     <div class="net" role="tablist" aria-label="Network">
       <button class="on" type="button" data-net="pc"><span class="dot"></span>Pentagon Chain</button>
-      <button class="soon" type="button" data-net="eth"><span class="dot"></span>Ethereum · soon</button>
+      <button class="soon" type="button" data-net="eth" onclick="location.hash='#ethereum'"><span class="dot"></span>Ethereum · preview</button>
     </div>
     <div class="spacer"></div>
+    <select id="themeSel" class="theme-sel" aria-label="Theme" title="Theme"><option value="classic">Classic</option><option value="market-dark">Market dark</option><option value="market-light">Market light</option><option value="premium">Premium</option><option value="cyber">Cyberpunk</option></select>
     <div data-pc-connector class="pcc" id="pcConnector"></div>
     <button class="btn ghost sm" type="button" id="btnMusic" title="Background music" aria-pressed="false">♪ Music</button>
     <button class="btn ghost sm" type="button" id="btnLegacy" title="Open the current v2 app">v2 app ↗</button>
@@ -576,15 +610,33 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
     <!-- ETHEREUM 3.0 -->
     <section class="view" id="view-ethereum">
       <h1>NFT Mining on Ethereum</h1>
-      <p class="sub">Your NFTs are the miners. A fair launch of NFC on Ethereum, earned by real holders, with the collections that give holders creative rights mining hardest.</p>
+      <p class="sub">Your NFTs are the miners. A fair launch of a new coin, NFTC (NonFungibleTokenCoin), earned by real holders of Ethereum NFTs.</p>
+      <div class="card raised eth-prev" id="ethPreview">
+        <div class="ep-head"><h2>Preview: mining on Ethereum</h2><span class="pill warn">Preview · mining not open yet</span></div>
+        <p class="hint" style="margin-top:6px">What Ethereum mining will look like with the collections approved so far. Hashrate per NFT shows today's values; at launch it follows filtered floor prices. Nothing on this page sends a transaction.</p>
+        <div class="ep-stats">
+          <div class="card"><div class="k">Approved collections</div><div class="v" id="epCount">—</div><div class="s" id="epFam">—</div></div>
+          <div class="card"><div class="k">Coin</div><div class="v">NFTC</div><div class="s">50 per block from block 1 · 21M cap</div></div>
+          <div class="card"><div class="k">Blocks</div><div class="v">20 min</div><div class="s">halving every 210,000 blocks</div></div>
+          <div class="card"><div class="k">Boosts (optional)</div><div class="v">0.001 ETH</div><div class="s">24 h · 0.005 ETH for 7 days · free to mine</div></div>
+        </div>
+        <h3>Check a wallet</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><input type="text" id="epAddr" placeholder="0x… any Ethereum address" style="flex:1;min-width:220px;font-family:var(--mono)"><button class="btn sm" type="button" id="epGo">Check</button></div>
+        <div id="epWallet" class="hint">See which of a wallet's NFTs would mine on Ethereum and its best team of 9.</div>
+        <div class="ep-cta"><button class="btn" type="button" disabled aria-disabled="true" title="Opens at launch">Start mining on Ethereum</button><span class="hint" style="margin:0">Opens at launch. Cold wallets will mine through delegate.xyz or warm.xyz, without signing from the cold wallet.</span></div>
+        <h3 style="margin-top:18px">Approved collections</h3>
+        <input type="text" id="epSearch" placeholder="Search collections…" style="min-width:200px">
+        <div class="ep-grid" id="epGrid"><div class="sk">loading</div></div>
+        <p class="hint">Collections from the same owner count as one family (for example BAYC, MAYC, BAKC and Meebits are all Yuga Labs). No family can exceed 15% of network hashrate. The list grows through Mining Improvement Proposals.</p>
+      </div>
       <div class="vision">
         <div class="card raised story">
           <h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 21V4M5 4h11l-2 4 2 4H5"/></svg> Where we come from</h3>
-          <div class="timeline"><div class="tl"><div class="tl-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></div><div><div class="tl-when">2019</div><div class="tl-t">Born on Ethereum</div><div class="tl-d">NFT Mining starts on Ethereum and several other chains: the NFTs people already hold can do work.</div></div></div><div class="tl"><div class="tl-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5"/></svg></div><div><div class="tl-when">Consolidation</div><div class="tl-t">Built on Pentagon Chain</div><div class="tl-d">One chain, done properly: 20-minute blocks, verifiable draws, sponsor pools.</div></div></div><div class="tl"><div class="tl-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM9 16V8l6 8V8"/></svg></div><div><div class="tl-when">May 2026</div><div class="tl-t">v2 and NFC</div><div class="tl-d">A token with Bitcoin's rules: 21M cap, 50 per block, halving every 210,000. Ethereum NFTs mine from day one.</div></div></div><div class="tl"><div class="tl-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l7 10-7 4-7-4zM5 14l7 8 7-8-7 4z"/></svg></div><div><div class="tl-when">Next</div><div class="tl-t">Back to Ethereum</div><div class="tl-d">After 7 years of building, NFC comes home to Ethereum, and Pentagon Chain keeps mining alongside it.</div></div></div></div>
+          <div class="timeline"><div class="tl"><div class="tl-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM3 12h18M12 3c3 3 3 15 0 18M12 3c-3 3-3 15 0 18"/></svg></div><div><div class="tl-when">2019</div><div class="tl-t">Born on Ethereum</div><div class="tl-d">NFT Mining starts on Ethereum and several other chains: the NFTs people already hold can do work.</div></div></div><div class="tl"><div class="tl-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5zM3 13l9 5 9-5"/></svg></div><div><div class="tl-when">Consolidation</div><div class="tl-t">Built on Pentagon Chain</div><div class="tl-d">One chain, done properly: 20-minute blocks, verifiable draws, sponsor pools.</div></div></div><div class="tl"><div class="tl-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM9 16V8l6 8V8"/></svg></div><div><div class="tl-when">May 2026</div><div class="tl-t">v2 and NFC</div><div class="tl-d">A token with Bitcoin's rules: 21M cap, 50 per block, halving every 210,000. Ethereum NFTs mine from day one.</div></div></div><div class="tl"><div class="tl-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l7 10-7 4-7-4zM5 14l7 8 7-8-7 4z"/></svg></div><div><div class="tl-when">Next</div><div class="tl-t">Back to Ethereum</div><div class="tl-d">After 7 years of building, NFT Mining comes home to Ethereum with a new coin, NFTC, and Pentagon Chain keeps mining NFC alongside it.</div></div></div></div>
           <h3 style="margin-top:18px"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2.5 5 5.5.8-4 3.9.9 5.5L12 15.6 7.1 18.2l.9-5.5-4-3.9L9.5 8z"/></svg> What we believe</h3>
-          <div class="belief-grid"><div class="belief"><div class="b-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10z"/></svg></div><div><div class="b-t">Holding is contribution</div><div class="b-d">Long-term holders keep collections alive and deserve recognition.</div></div></div><div class="belief"><div class="b-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4"/></svg></div><div><div class="b-t">Fair launch, fixed rules</div><div class="b-d">No presale, no team allocation, Bitcoin's schedule, locked in the contract.</div></div></div><div class="belief"><div class="b-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M6 21h12M5 7h14M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z"/></svg></div><div><div class="b-t">Value, not hardware</div><div class="b-d">Cube-root hashrate means nobody can buy the network.</div></div></div><div class="belief"><div class="b-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.5-.8 1.5-1.5 0-1.2-1-1.5-1-2.5s.8-1.5 2-1.5H17a4 4 0 0 0 4-4c0-4.4-4-8.5-9-8.5zM7.5 11h.01M10 7.5h.01M15 7.5h.01"/></svg></div><div><div class="b-t">Creators' rights matter</div><div class="b-d">Collections that give holders their IP mine hardest.</div></div></div><div class="belief"><div class="b-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h15a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H3zM3 7l12-4v4M17 14h.01"/></svg></div><div><div class="b-t">Nothing leaves your wallet</div><div class="b-d">Non-custodial. Cold wallets mine by delegation.</div></div></div><div class="belief"><div class="b-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4"/></svg></div><div><div class="b-t">Provably fair, no house edge</div><div class="b-d">Every block is verifiable. New NFC is minted, not taken from anyone.</div></div></div><div class="belief"><div class="b-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11h16v10H4zM2 7h20v4H2zM12 7v14M12 7C11 4 9 3 7.5 3 6 3 5.5 6 8 7M12 7c1-3 3-4 4.5-4S18.5 6 16 7"/></svg></div><div><div class="b-t">No fee to mine</div><div class="b-d">Hold a qualifying NFT and you can mine for free. Boosts are optional.</div></div></div><div class="belief"><div class="b-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a7 7 0 0 1 14 0M17 11a3 3 0 1 0 0-6M22 21a6 6 0 0 0-4-5.6"/></svg></div><div><div class="b-t">The community sets the rules</div><div class="b-d">Changes go through public Mining Improvement Proposals.</div></div></div></div>
+          <div class="belief-grid"><div class="belief"><div class="b-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-4.5-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.5-7 10-7 10z"/></svg></div><div><div class="b-t">Holding is contribution</div><div class="b-d">Long-term holders keep collections alive and deserve recognition.</div></div></div><div class="belief"><div class="b-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 11h12v10H6zM8 11V7a4 4 0 0 1 8 0v4"/></svg></div><div><div class="b-t">Fair launch, fixed rules</div><div class="b-d">No presale, no team allocation, Bitcoin's schedule, locked in the contract.</div></div></div><div class="belief"><div class="b-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M6 21h12M5 7h14M5 7l-3 6a3 3 0 0 0 6 0zM19 7l-3 6a3 3 0 0 0 6 0z"/></svg></div><div><div class="b-t">Value, not hardware</div><div class="b-d">Cube-root hashrate means nobody can buy the network.</div></div></div><div class="belief"><div class="b-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.5-.8 1.5-1.5 0-1.2-1-1.5-1-2.5s.8-1.5 2-1.5H17a4 4 0 0 0 4-4c0-4.4-4-8.5-9-8.5zM7.5 11h.01M10 7.5h.01M15 7.5h.01"/></svg></div><div><div class="b-t">Creators' rights matter</div><div class="b-d">Collections that give holders their IP mine hardest.</div></div></div><div class="belief"><div class="b-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 7h15a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H3zM3 7l12-4v4M17 14h.01"/></svg></div><div><div class="b-t">Nothing leaves your wallet</div><div class="b-d">Non-custodial. Cold wallets mine by delegation.</div></div></div><div class="belief"><div class="b-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM9 12l2 2 4-4"/></svg></div><div><div class="b-t">Provably fair, no house edge</div><div class="b-d">Every block is verifiable. New coins are minted, not taken from anyone.</div></div></div><div class="belief"><div class="b-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11h16v10H4zM2 7h20v4H2zM12 7v14M12 7C11 4 9 3 7.5 3 6 3 5.5 6 8 7M12 7c1-3 3-4 4.5-4S18.5 6 16 7"/></svg></div><div><div class="b-t">No fee to mine</div><div class="b-d">Hold a qualifying NFT and you can mine for free. Boosts are optional.</div></div></div><div class="belief"><div class="b-ic"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21a7 7 0 0 1 14 0M17 11a3 3 0 1 0 0-6M22 21a6 6 0 0 0-4-5.6"/></svg></div><div><div class="b-t">The community sets the rules</div><div class="b-d">Changes go through public Mining Improvement Proposals.</div></div></div></div>
         </div>
-        <div class="steps" style="margin-top:16px"><div class="step"><div class="i"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4l6 6M3 21l10-10M4.5 8.5C8 4 14 2.5 18 4M15.5 19.5C20 16 21.5 10 20 6"/></svg></div><div class="t">Your NFTs are the miners</div><div class="d">Enroll from any wallet, including cold wallets through delegate.xyz or warm.xyz. Nothing leaves your wallet.</div></div><div class="step"><div class="i"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18M7 15l4-4 3 3 5-6"/></svg></div><div class="t">Hashrate from the market</div><div class="d">Cube root of a hardened collection value, plus rarity. Bigger collections mine more, but never proportionally.</div></div><div class="step"><div class="i"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.5-.8 1.5-1.5 0-1.2-1-1.5-1-2.5s.8-1.5 2-1.5H17a4 4 0 0 0 4-4c0-4.4-4-8.5-9-8.5zM7.5 11h.01M10 7.5h.01M15 7.5h.01"/></svg></div><div class="t">Rights-weighted</div><div class="d">CC0 and commercial-rights collections get the full multiplier. Personal-use collections still mine, at a lower tier.</div></div><div class="step"><div class="i"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"/></svg></div><div class="t">Bitcoin schedule</div><div class="d">Starts at block 1: 50 NFC per 20-minute block, halving every 210,000 blocks, 21M cap. No presale, no team allocation.</div></div><div class="step"><div class="i"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg></div><div class="t">Dual mining</div><div class="d">Pentagon Chain keeps running. Ethereum miners also earn PC for gas, so one wallet can mine both.</div></div><div class="step"><div class="i"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11h16v10H4zM2 7h20v4H2zM12 7v14M12 7C11 4 9 3 7.5 3 6 3 5.5 6 8 7M12 7c1-3 3-4 4.5-4S18.5 6 16 7"/></svg></div><div class="t">Rewards beyond NFC</div><div class="d">Projects can fund approved tokens that flow to the NFT holders who mine, paid to each block winner. A fair distribution rail to real NFT communities. PC on Pentagon Chain first.</div></div></div>
+        <div class="steps" style="margin-top:16px"><div class="step"><div class="i"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 4l6 6M3 21l10-10M4.5 8.5C8 4 14 2.5 18 4M15.5 19.5C20 16 21.5 10 20 6"/></svg></div><div class="t">Your NFTs are the miners</div><div class="d">Enroll from any wallet, including cold wallets through delegate.xyz or warm.xyz. Nothing leaves your wallet.</div></div><div class="step"><div class="i"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18M7 15l4-4 3 3 5-6"/></svg></div><div class="t">Hashrate from the market</div><div class="d">Cube root of a hardened collection value, plus rarity. Bigger collections mine more, but never proportionally.</div></div><div class="step"><div class="i"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18c1 0 1.5-.8 1.5-1.5 0-1.2-1-1.5-1-2.5s.8-1.5 2-1.5H17a4 4 0 0 0 4-4c0-4.4-4-8.5-9-8.5zM7.5 11h.01M10 7.5h.01M15 7.5h.01"/></svg></div><div class="t">Rights-weighted</div><div class="d">CC0 and commercial-rights collections get the full multiplier. Personal-use collections still mine, at a lower tier.</div></div><div class="step"><div class="i"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"/></svg></div><div class="t">Bitcoin schedule</div><div class="d">Starts at block 1: 50 NFTC per 20-minute block, halving every 210,000 blocks, 21M cap. No presale, no team allocation.</div></div><div class="step"><div class="i"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/></svg></div><div class="t">Dual mining</div><div class="d">Pentagon Chain keeps running. Ethereum miners also earn PC for gas, so one wallet can mine both.</div></div><div class="step"><div class="i"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11h16v10H4zM2 7h20v4H2zM12 7v14M12 7C11 4 9 3 7.5 3 6 3 5.5 6 8 7M12 7c1-3 3-4 4.5-4S18.5 6 16 7"/></svg></div><div class="t">Rewards beyond NFC</div><div class="d">Projects can fund approved tokens that flow to the NFT holders who mine, paid to each block winner. A fair distribution rail to real NFT communities. PC on Pentagon Chain first.</div></div></div>
         <div class="section"><h2><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 3v18h18M7 15l4-4 3 3 5-6"/></svg> Hashrate tiers</h2>
           <div class="tiers">
             <div class="tier"><div class="m"><span class="ti"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l4 4 5-7 5 7 4-4-2 11H5z"/></svg></span>1.0×</div><div><div class="t">Blue chip · rights-granting</div><div class="d">CC0 or full commercial license to the holder. Deep bid book. Examples: CryptoPunks, BAYC, Azuki, Nouns, Milady, mfers, CrypToadz.</div></div><span class="pill good">full</span></div>
@@ -594,10 +646,10 @@ input[type=text]:focus,select:focus{border-color:var(--ore);outline:0}
           </div>
         </div>
         <div class="section grid g2">
-          <div class="card"><h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 8v8M8 12h8"/></svg> Adding a collection</h3><div class="kv"><div>Verified contract, ERC-721 or 1155</div><div>required</div><div>Age</div><div>≥ 90 days</div><div>Holders</div><div>≥ 500</div><div>Rights declaration</div><div>license URL</div><div>Bid depth check</div><div>≥ 3 bidders</div><div>Sponsor pool (optional)</div><div>fast track</div><div>Community vote</div><div>NFC holders</div></div></div>
-          <div class="card"><h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h13l-3-3M20 17H7l3 3"/></svg> Ethereum mining vs Pentagon Chain</h3><p class="hint" style="margin:0 0 8px">This applies to the future Ethereum mining only. Mining on Pentagon Chain (v2 and this v3 page) is unchanged: boosts, membership multipliers and perks all stay.</p><div class="kv"><div>Boosts</div><div>kept, paid in ETH</div><div>Sponsor rewards</div><div>kept: approved tokens on Ethereum, plus PC on Pentagon Chain</div><div>Membership multipliers, jackpots</div><div>being decided</div><div>Delegated wallets</div><div>supported</div><div>NFC</div><div>new token, starts at block 1</div><div>Settlement</div><div>Ethereum mainnet</div></div></div>
+          <div class="card"><h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 8v8M8 12h8"/></svg> Adding a collection</h3><div class="kv"><div>Verified contract, ERC-721 or 1155</div><div>required</div><div>Age</div><div>≥ 90 days</div><div>Holders</div><div>≥ 500</div><div>Rights declaration</div><div>license URL</div><div>Bid depth check</div><div>≥ 3 bidders</div><div>Sponsor pool (optional)</div><div>fast track</div><div>Community vote</div><div>NFTC holders</div></div></div>
+          <div class="card"><h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h13l-3-3M20 17H7l3 3"/></svg> Ethereum mining vs Pentagon Chain</h3><p class="hint" style="margin:0 0 8px">This applies to the future Ethereum mining only. Mining on Pentagon Chain (v2 and this v3 page) is unchanged: boosts, membership multipliers and perks all stay.</p><div class="kv"><div>Boosts</div><div>kept, paid in ETH to a public treasury</div><div>Sponsor rewards</div><div>kept: approved tokens on Ethereum, plus PC on Pentagon Chain</div><div>Membership multipliers, jackpots</div><div>being decided</div><div>Delegated wallets</div><div>supported</div><div>Coin</div><div>NFTC, a new token, starts at block 1</div><div>Settlement</div><div>Ethereum mainnet</div></div></div>
         </div>
-        <div class="section card raised"><h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"/></svg> Status</h3><p style="margin:0">Contracts and token: in design. Public testnet: after the research and audit pass. This interface already runs on the live Pentagon Chain network so the experience is ready before the chain is.</p></div>
+        <div class="section card raised"><h3><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18zM12 7v5l3 3"/></svg> Status</h3><p style="margin:0">Contracts and token: written and tested, now in independent security review. Not deployed yet. This interface already runs on the live Pentagon Chain network, so the experience is ready before Ethereum mining opens.</p></div>
       </div>
     </section>
   </main>
@@ -696,10 +748,50 @@ function route(){let v=(location.hash||"#mine").slice(1).split("?")[0];if(v==="h
   if(v==="leaderboard"&&!loaded.lb){loaded.lb=1;loadLeaderboard()}
   if(v==="pools"&&!loaded.pools){loaded.pools=1;loadPools()}
   if(v==="halving")drawHalving();
+  if(v==="ethereum"&&!loaded.eth){loaded.eth=1;loadEthPreview()}
   if(v==="vault"&&state.wallet&&!state.vault)loadVault(state.wallet);
   if(v==="rewards"&&state.wallet&&!loaded.rewards){loaded.rewards=1;loadRewards(state.wallet)}
 }
 window.addEventListener("hashchange",route);
+/* ---------- theme switcher ---------- */
+(function(){const sel=$("themeSel");if(!sel)return;sel.value=document.documentElement.getAttribute("data-theme")||"classic";
+  sel.addEventListener("change",()=>{const t=sel.value;if(t==="classic")document.documentElement.removeAttribute("data-theme");else document.documentElement.setAttribute("data-theme",t);try{localStorage.setItem("pg_theme",t)}catch(e){}})})();
+/* ---------- Ethereum preview (read-only, no transactions) ---------- */
+const EP_EXCLUDE=new Set(["0x5d00d312e171be5342067c09bae883f9bcb2003b"]); // Ethermon: not a PFP (nftprof, 1 Nov 2026)
+const EP_FAMILY={"0xbc4ca0eda7647a8ab7c2061c2e118a18a936f13d":"Yuga Labs","0x60e4d786628fea6478f785a6d7e704777c86a7c6":"Yuga Labs","0xba30e5f9bb24caa003e9f2f0497ad287fdf95623":"Yuga Labs","0x7bd29408f11d2bfc23c34f18275bbf23bb716bc7":"Yuga Labs",
+  "0xed5af388653567af2f388e6224dc7c4b3241c544":"Azuki","0x306b1ea3ecdf94ab739f1910bbda052ed4a9f949":"Azuki","0xbd3531da5cf5857e7cfaa92426877b022e612cf8":"Pudgy Penguins","0x524cab2ec69124574082676e6f654a18df49a048":"Pudgy Penguins",
+  "0x49cf6f5d44e70224e2e23fdcdd2c053f30ada28b":"RTFKT","0x23581767a106ae21c074b2276d25e5c3e136a68b":"Proof","0x5af0d9827e0c53e4799bb226655a1de152a425a5":"Remilia",
+  "0x67abaddb1258077f7900abd8ade0ecc6cdc38ac2":"BCSH","0x2094e4f1ad01438eca93092e87033f87d8f76f63":"POW","0x10d2d273cb8f6179f1ddd2ee5689cdce363b9a01":"ChainGuardians"};
+const EP_PENTAGON=new Set(["BCSH","POW","ChainGuardians"]);
+let EP=null;
+const epFam=c=>EP_FAMILY[c.contract_address.toLowerCase()]||c.collection_name;
+const epImg=c=>`https://images.pfpvault.com/1/${c.contract_address.toLowerCase()}/1.webp`;
+async function loadEthPreview(){try{const d=await get("/collection_config",20000);
+  EP=Object.values(d.collections||{}).filter(c=>c.chain_id===1&&!EP_EXCLUDE.has(c.contract_address.toLowerCase())).sort((a,b)=>(b.effective_hashrate||0)-(a.effective_hashrate||0)||a.collection_name.localeCompare(b.collection_name));
+  $("epCount").textContent=EP.length;$("epFam").textContent=new Set(EP.map(epFam)).size+" families";paintEthGrid();
+  if(state.wallet&&!$("epAddr").value){$("epAddr").value=state.wallet;epCheck(state.wallet)}
+}catch(e){$("epGrid").innerHTML='<div class="empty">Could not load the collection list. Try again shortly.</div>'}}
+function paintEthGrid(){if(!EP)return;const q=($("epSearch").value||"").trim().toLowerCase();
+  const list=EP.filter(c=>!q||c.collection_name.toLowerCase().includes(q)||epFam(c).toLowerCase().includes(q));
+  $("epGrid").innerHTML=list.length?list.map(c=>{const f=epFam(c);return `<div class="ep-col"><img src="${epImg(c)}" alt="" loading="lazy" onerror="this.onerror=null;this.src=IMG_FALLBACK"><div style="min-width:0"><div class="t" title="${esc(c.collection_name)}">${esc(c.collection_name)}${EP_PENTAGON.has(f)?'<span class="pg">PENTAGON</span>':""}</div><div class="d">${esc(f)} · <a href="https://etherscan.io/address/${esc(c.contract_address)}" target="_blank" rel="noopener">contract</a></div></div><div class="hr" title="Hashrate per NFT today">⚡ ${fmt(c.effective_hashrate)}</div></div>`}).join(""):'<div class="empty">No collection matches.</div>'}
+async function epCheck(w){w=(w||"").trim();const out=$("epWallet");if(!/^0x[0-9a-fA-F]{40}$/.test(w)){out.textContent="Enter a full 0x address.";return}
+  if(!EP){out.textContent="Loading collections…";return}
+  out.innerHTML='<span class="sk">checking</span>';
+  try{const v=await get("/tokens/"+w,40000);const ok=new Set(EP.map(c=>c.contract_address.toLowerCase()));
+    const eth=(v.nfts||[]).filter(n=>n.chain_id===1&&ok.has((n.contract_address||"").toLowerCase()));
+    if(!eth.length){out.innerHTML='No approved Ethereum NFTs in this wallet yet. <a href="https://pentagon.games/redeem" target="_blank" rel="noopener">Redeem PC or Points for one</a>.';return}
+    const fam=n=>EP_FAMILY[(n.contract_address||"").toLowerCase()]||n.collection||"";
+    const fams=new Set(eth.map(fam));const team=eth.slice().sort((a,b)=>(b.hashrate||0)-(a.hashrate||0)).slice(0,9);
+    const hr=team.reduce((s,n)=>s+(n.hashrate||0),0);
+    const rule=fams.size>=2?'<span class="pill good">2+ families · full rate</span>':'<span class="pill warn">1 family · shared family pool, reduced rate</span>';
+    out.innerHTML=`<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:6px"><b>${eth.length} NFT${eth.length>1?"s":""} would mine</b><span class="pill">${fams.size} famil${fams.size>1?"ies":"y"}</span>${rule}<span class="pill">⚡ team hashrate ${fmt(hr)}</span></div>
+      <div class="ep-team">${team.map(n=>`<img src="${esc(nftImg(n))}" alt="${esc(n.name||"")}" title="${esc((n.collection||"")+" · "+(n.name||"#"+n.token_id)+" · ⚡ "+fmt(n.hashrate))}" loading="lazy" onerror="this.onerror=null;this.src=IMG_FALLBACK">`).join("")}</div>
+      <div class="hint" style="margin-top:0">Best team of 9 by today's hashrate.${fams.size>=2?"":" Wallets holding a single collection family share one capped pool per family; holding a second, unrelated family unlocks the full rate."}</div>`}
+  catch(e){out.textContent="Could not read this wallet right now. Try again shortly."}}
+$("epGo").addEventListener("click",()=>epCheck($("epAddr").value));
+$("epAddr").addEventListener("keydown",e=>{if(e.key==="Enter")epCheck($("epAddr").value)});
+$("epSearch").addEventListener("input",paintEthGrid);
+
 
 /* ---------- live network ---------- */
 function setOffline(on){state.apiFails=on?(state.apiFails||0)+1:0;$("offline").hidden=!(state.apiFails>=2)}
